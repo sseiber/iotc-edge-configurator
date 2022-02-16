@@ -1,16 +1,11 @@
-// import { makeAutoObservable, runInAction } from 'mobx';
-// FIX: xxx
-const runInAction = (func: any) => {
-    return func();
-};
+import { makeAutoObservable, runInAction } from 'mobx';
 
 import { getUserSession } from '../apis/session';
 
 export class SessionStore {
-    // FIX: xxx
-    // constructor() {
-    //     makeAutoObservable(this);
-    // }
+    constructor() {
+        makeAutoObservable(this);
+    }
 
     public userId = '';
     public displayName = '';

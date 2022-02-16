@@ -1,8 +1,4 @@
-// import { makeAutoObservable, runInAction } from 'mobx';
-// FIX: xxx
-const runInAction = (func: any) => {
-    return func();
-};
+import { makeAutoObservable, runInAction } from 'mobx';
 
 export enum ErrorTypes {
     ExceptionError = 'ExceptionError',
@@ -16,9 +12,9 @@ export interface IErrorResult {
 }
 
 export class ErrorStore {
-    // constructor() {
-    //     makeAutoObservable(this);
-    // }
+    constructor() {
+        makeAutoObservable(this);
+    }
 
     public shouldShowInternal = false;
     public title = 'Error';

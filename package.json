@@ -52,10 +52,10 @@
                 [
                     "@electron-forge/plugin-webpack",
                     {
-                        "mainConfig": "./webpack.main.config.js",
+                        "mainConfig": "./webpackConfigs/webpack.main.config.js",
                         "devContentSecurityPolicy": "connect-src 'self' https://cdnjs.cloudflare.com 'unsafe-eval'",
                         "renderer": {
-                            "config": "./webpack.renderer.config.js",
+                            "config": "./webpackConfigs/webpack.renderer.config.js",
                             "entryPoints": [
                                 {
                                     "html": "./src/renderer/index.html",
@@ -98,7 +98,10 @@
     },
     "dependencies": {
         "axios": "^0.26.0",
+        "electron-log": "^4.4.6",
         "electron-squirrel-startup": "^1.0.0",
+        "mobx": "^6.3.13",
+        "mobx-react-lite": "^3.2.3",
         "query-string": "^7.1.1",
         "react": "^17.0.2",
         "react-dom": "^17.0.2",

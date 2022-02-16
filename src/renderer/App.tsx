@@ -1,12 +1,13 @@
 import React, { FC } from 'react';
 import { Routes, Route, useLocation, useNavigate, Link, Navigate } from 'react-router-dom';
+import { observer } from 'mobx-react-lite';
 import { useAsyncEffect } from 'use-async-effect';
 import { Menu, Grid, Image, Icon, Dropdown } from 'semantic-ui-react';
 import { parse as qsParse } from 'query-string';
 import { useStore } from './stores/store';
 import HomePage from './pages/HomePage';
 
-const App: FC = (props: any) => {
+const App: FC = observer((props: any) => {
     const navigate = useNavigate();
     const location = useLocation();
     const {
@@ -84,6 +85,6 @@ const App: FC = (props: any) => {
             <Menu fixed="bottom" inverted color="grey" style={{ padding: '1em 5em' }} />
         </>
     );
-};
+});
 
 export default App;

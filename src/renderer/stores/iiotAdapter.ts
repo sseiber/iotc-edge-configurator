@@ -1,8 +1,4 @@
-// import { makeAutoObservable, runInAction } from 'mobx';
-// FIX: xxx
-const runInAction = (func: any) => {
-    return func();
-};
+import { makeAutoObservable, runInAction } from 'mobx';
 
 import {
     iiotAdapterRequest
@@ -119,31 +115,35 @@ export interface IAddOrUpdateAssetsRequestParams {
 }
 
 export enum iiotAdapterCommand {
-    cmBrowseNodes,
-    cmFetchNodes
+    AddOrUpdateAssets_v1 = 'AddOrUpdateAssets_v1',
+    GetAllAssets_v1 = 'GetAllAssets_v1',
+    RemoveAssets_v1 = 'RemoveAssets_v1',
+    Shutdown_v1 = 'Shutdown_v1',
+    GenerateDtdl_v1 = 'GenerateDtdl_v1',
+    TestConnection_v1 = 'TestConnection_v1',
+    WriteValues_v1 = 'WriteValues_v1',
+    ReadValues_v1 = 'ReadValues_v1',
+    BrowseNodes_v1 = 'BrowseNodes_v1',
+    FetchBrowsedNodes_v1 = 'FetchBrowsedNodes_v1'
 }
 
 export class IiotAdapterStore {
-    // FIX: xxx
-    // constructor() {
-    //     makeAutoObservable(this);
-    // }
+    constructor() {
+        makeAutoObservable(this);
+    }
 
+    public connection = false;
     public serviceError = '';
 
-    // FIX: xxx
-    // @ts-ignore
     public async iotcRequest(command: iiotAdapterCommand, params?: any): Promise<void> {
         try {
             switch (command) {
-                case iiotAdapterCommand.cmBrowseNodes: {
-                    const response = await iiotAdapterRequest('foo', 'bar');
+                case iiotAdapterCommand.TestConnection_v1: {
+                    const response = await iiotAdapterRequest(command, params, 10, 10);
                     const responsePayload = response.payload;
                     if (responsePayload && responsePayload.status === 200) {
                         runInAction(() => {
-                            // FIX: xxx
-                            // @ts-ignore
-                            const foo = responsePayload.payload || [];
+                            this.connection = true;
                         });
                     }
                     else {
