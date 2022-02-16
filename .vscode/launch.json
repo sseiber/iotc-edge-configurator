@@ -1,0 +1,26 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Electron Main",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron-forge-vscode-nix",
+            "windows": {
+                "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron-forge-vscode-win.cmd"
+            },
+            "sourceMaps": true,
+            "smartStep": true,
+            "showAsyncStacks": true,
+            // runtimeArgs will be passed directly to your Electron application
+            "runtimeArgs": [
+                "foo",
+                "bar"
+            ],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
