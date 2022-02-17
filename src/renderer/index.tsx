@@ -4,6 +4,8 @@ import { MemoryRouter as Router } from 'react-router-dom';
 import { store, StoreContext } from './stores/store';
 import App from './App';
 
+const ModuleName = 'renderer:index';
+
 /**
  * This file will automatically be loaded by webpack and run in the "renderer" context.
  * To learn more about the differences between the "main" and the "renderer" context in
@@ -32,8 +34,7 @@ import App from './App';
  * ```
  */
 
-// eslint-disable-next-line no-console
-console.log('👋 This message is being logged by "renderer.js", included via webpack');
+void window.ipcApi.log([ModuleName, 'info'], `Starting renderer index module...`);
 
 render(
     <Router>

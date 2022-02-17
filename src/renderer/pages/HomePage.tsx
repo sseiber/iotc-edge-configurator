@@ -3,7 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { useAsyncEffect } from 'use-async-effect';
 import { Dimmer, Grid, Loader, Message } from 'semantic-ui-react';
 import { useStore } from '../stores/store';
-import { iiotAdapterCommand } from '../stores/iiotAdapter';
+import { IiotAdapterCommands } from '../stores/iiotAdapter';
 
 const HomePage: FC = observer(() => {
     const {
@@ -15,7 +15,7 @@ const HomePage: FC = observer(() => {
     useAsyncEffect(async isMounted => {
         setLoading(true);
 
-        await iiotAdapterStore.iotcRequest(iiotAdapterCommand.TestConnection_v1, {
+        await iiotAdapterStore.iotcRequest(IiotAdapterCommands.TestConnection_v1, {
             OpcEndpoint: {
                 Uri: 'opc.tcp://192.168.4.123:4980',
                 SecurityMode: 'Lowest',

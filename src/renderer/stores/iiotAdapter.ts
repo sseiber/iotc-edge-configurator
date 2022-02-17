@@ -114,7 +114,7 @@ export interface IAddOrUpdateAssetsRequestParams {
     nodes: NodeSubscriptionConfiguration[];
 }
 
-export enum iiotAdapterCommand {
+export enum IiotAdapterCommands {
     AddOrUpdateAssets_v1 = 'AddOrUpdateAssets_v1',
     GetAllAssets_v1 = 'GetAllAssets_v1',
     RemoveAssets_v1 = 'RemoveAssets_v1',
@@ -135,10 +135,10 @@ export class IiotAdapterStore {
     public connection = false;
     public serviceError = '';
 
-    public async iotcRequest(command: iiotAdapterCommand, params?: any): Promise<void> {
+    public async iotcRequest(command: IiotAdapterCommands, params?: any): Promise<void> {
         try {
             switch (command) {
-                case iiotAdapterCommand.TestConnection_v1: {
+                case IiotAdapterCommands.TestConnection_v1: {
                     const response = await iiotAdapterRequest(command, params, 10, 10);
                     const responsePayload = response.payload;
                     if (responsePayload && responsePayload.status === 200) {
