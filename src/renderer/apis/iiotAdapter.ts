@@ -10,6 +10,10 @@ export async function iiotAdapterRequest(commandName: string, request: any, conn
     return requestHelper({
         method: 'post',
         url: `https://${subdomain}.${baseDomain}/api/devices/${deviceId}/modules/${moduleName}/components/${componentName}/commands/${commandName}?api-version=preview`,
+        credentials: 'include',
+        headers: {
+            Authorization: 'SharedAccessSignature sr=fe7521f6-5581-4312-8339-f7824b29ad55&sig=jkslK02u3aSAtW7UaUwKkQLZ2ahfEqqLFRexF5wKKwM%3D&skn=iiotAdapterGateway&se=1676153588131'
+        },
         data: {
             connectionTimeout,
             responseTimeout,

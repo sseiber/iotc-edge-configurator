@@ -1,36 +1,43 @@
 import React, { FC, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useAsyncEffect } from 'use-async-effect';
-import { Dimmer, Grid, Loader, Message } from 'semantic-ui-react';
+import { Button, Dimmer, Grid, Loader, Message } from 'semantic-ui-react';
 import { useStore } from '../stores/store';
-import { IiotAdapterCommands } from '../stores/iiotAdapter';
+import { useInfoDialog, showInfoDialog } from '../components/InfoDialogContext';
 
 const HomePage: FC = observer(() => {
     const {
-        iiotAdapterStore
+        sessionStore
     } = useStore();
+    const infoDialogContext = useInfoDialog();
 
     const [loading, setLoading] = useState(false);
 
-    useAsyncEffect(async isMounted => {
-        setLoading(true);
+    const onClickButton = async () => {
+        let errorMessage;
 
-        await iiotAdapterStore.iotcRequest(IiotAdapterCommands.TestConnection_v1, {
-            OpcEndpoint: {
-                Uri: 'opc.tcp://192.168.4.123:4980',
-                SecurityMode: 'Lowest',
-                Credentials: {
-                    CredentialType: 'anonymous'
-                }
-            }
-        });
+        try {
+            setLoading(true);
 
-        if (!isMounted()) {
-            return;
+            await sessionStore.setMsalConfig();
+
+            // @ts-ignore
+            const signinResult = await sessionStore.signin();
+
+            setLoading(false);
+        }
+        catch (ex) {
+            errorMessage = ex.message;
         }
 
-        setLoading(false);
-    }, []);
+        if (errorMessage) {
+            await showInfoDialog(infoDialogContext, {
+                catchOnCancel: true,
+                variant: 'info',
+                title: 'Error',
+                description: errorMessage
+            });
+        }
+    };
 
     return (
         <Grid style={{ padding: '5em 5em' }}>
@@ -38,11 +45,23 @@ const HomePage: FC = observer(() => {
                 <Grid.Column>
                     <Message size="huge">
                         <Message.Header>Azure IoT Central</Message.Header>
-                        <p>Azure IoT Central Solution Builder</p>
+                        <p>Azure IoT Central Solution Builder - this is the home page</p>
                     </Message>
                     <Dimmer active={loading} inverted>
                         <Loader>Pending...</Loader>
                     </Dimmer>
+                </Grid.Column>
+            </Grid.Row>
+            <Grid.Row>
+                <Grid.Column>
+                    <Button
+                        floated="right"
+                        size="small"
+                        color={'green'}
+                        onClick={onClickButton}
+                    >
+                        Claim Token
+                    </Button>
                 </Grid.Column>
             </Grid.Row>
         </Grid>

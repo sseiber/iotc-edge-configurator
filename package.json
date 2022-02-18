@@ -62,7 +62,7 @@
                                     "js": "./src/renderer/index.tsx",
                                     "name": "main_window",
                                     "preload": {
-                                        "js": "./src/main/preload.js"
+                                        "js": "./src/main/contextBridge.js"
                                     }
                                 }
                             ]
@@ -100,6 +100,7 @@
         "typescript": "~4.5.4"
     },
     "dependencies": {
+        "@azure/msal-node": "^1.6.0",
         "axios": "^0.26.0",
         "electron-log": "^4.4.6",
         "electron-squirrel-startup": "^1.0.0",

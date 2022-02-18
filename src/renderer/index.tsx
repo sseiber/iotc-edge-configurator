@@ -1,6 +1,7 @@
 import React from 'react';
 import { render } from 'react-dom';
 import { MemoryRouter as Router } from 'react-router-dom';
+import { Ipc_Log } from '../main/contextBridgeTypes';
 import { store, StoreContext } from './stores/store';
 import App from './App';
 
@@ -34,7 +35,7 @@ const ModuleName = 'renderer:index';
  * ```
  */
 
-void window.ipcApi.log([ModuleName, 'info'], `Starting renderer index module...`);
+void window.ipcApi[Ipc_Log]([ModuleName, 'info'], `Starting renderer index module...`);
 
 render(
     <Router>

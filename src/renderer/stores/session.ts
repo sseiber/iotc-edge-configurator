@@ -1,11 +1,23 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { getUserSession } from '../apis/session';
-import { IMsalConfig } from '../../main/contextBridge';
+import {
+    Ipc_Signin,
+    Ipc_MsalConfig
+} from '../../main/contextBridgeTypes';
+
+export enum AuthenticationState {
+    Authenticated = 'Authenticated',
+    Unauthenticated = 'Unauthenticated',
+    Authenticating = 'Authenticating',
+    CouldNotAuthenticate = 'CouldNotAuthenticate'
+}
 
 export class SessionStore {
     constructor() {
         makeAutoObservable(this);
     }
+
+    public authenticationState: AuthenticationState;
 
     // AAD app registration credentials
     public clientId = '4072cff6-8d4f-49e8-ac6c-fead2b684971';
@@ -36,8 +48,74 @@ export class SessionStore {
         return process.env.NODE_ENV === 'production';
     }
 
-    public async setMsalConfig(msalConfig: IMsalConfig): Promise<void> {
-        return window.ipcApi.setMsalConfig(msalConfig);
+    public async setMsalConfig(): Promise<void> {
+        return window.ipcApi[Ipc_MsalConfig]({
+            clientId: this.clientId,
+            tenantId: this.tenantId,
+            redirectUri: this.redirectUri,
+            aadEndpointHost: this.aadEndpointHost,
+            graphEndpointHost: this.graphEndpointHost,
+            graphMeEndpoint: this.graphMeEndpoint,
+            graphScopes: this.graphScopes
+        });
+    }
+
+    public async signin(): Promise<void> {
+        runInAction(() => {
+            this.authenticationState = AuthenticationState.Authenticating;
+        });
+
+        try {
+            const response: any = await window.ipcApi[Ipc_Signin]();
+            if (response?.status === undefined) {
+                runInAction(() => {
+                    this.authenticationState = AuthenticationState.Authenticated;
+                    this.userId = response.data.userId;
+                    this.displayName = response.data.displayName;
+                    this.email = response.data.email;
+                    this.authProvider = response.data.authProvider;
+                });
+            }
+            else {
+                runInAction(() => {
+                    this.authenticationState = AuthenticationState.CouldNotAuthenticate;
+                });
+            }
+        }
+        catch (ex) {
+            runInAction(() => {
+                this.authenticationState = AuthenticationState.CouldNotAuthenticate;
+            });
+        }
+    }
+
+    public async getUserProfile(): Promise<void> {
+        runInAction(() => {
+            this.authenticationState = AuthenticationState.Authenticating;
+        });
+
+        try {
+            const response: any = await window.ipcApi[Ipc_Signin]();
+            if (response?.status === undefined) {
+                runInAction(() => {
+                    this.authenticationState = AuthenticationState.Authenticated;
+                    this.userId = response.data.userId;
+                    this.displayName = response.data.displayName;
+                    this.email = response.data.email;
+                    this.authProvider = response.data.authProvider;
+                });
+            }
+            else {
+                runInAction(() => {
+                    this.authenticationState = AuthenticationState.CouldNotAuthenticate;
+                });
+            }
+        }
+        catch (ex) {
+            runInAction(() => {
+                this.authenticationState = AuthenticationState.CouldNotAuthenticate;
+            });
+        }
     }
 
     public async getUserSessionInfo(_userId: string): Promise<void> {
@@ -47,7 +125,7 @@ export class SessionStore {
 
             if (responsePayload && responsePayload.status === 200) {
                 runInAction(() => {
-                    // this.authenticationState = AuthenticationState.Authenticated;
+                    this.authenticationState = AuthenticationState.Authenticated;
                     this.userId = response.payload.userId;
                     this.displayName = response.payload.displayName;
                     this.email = response.payload.email;
@@ -60,11 +138,11 @@ export class SessionStore {
                 });
             }
 
-            // this.authenticationState = AuthenticationState.CouldNotAuthenticate;
+            this.authenticationState = AuthenticationState.CouldNotAuthenticate;
         }
         catch (ex) {
             runInAction(() => {
-                // this.authenticationState = AuthenticationState.CouldNotAuthenticate;
+                this.authenticationState = AuthenticationState.CouldNotAuthenticate;
                 this.userId = '';
                 this.displayName = '';
                 this.email = '';

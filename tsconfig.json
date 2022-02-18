@@ -14,6 +14,8 @@
         "esModuleInterop": true,
         "baseUrl": ".",
         "resolveJsonModule": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
         "paths": {
             "*": [
                 "node_modules/*"
