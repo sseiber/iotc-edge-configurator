@@ -6,8 +6,7 @@ export enum StoreKeys {
     redirectUri = 'redirectUri',
     aadEndpointHost = 'aadEndpointHost',
     graphEndpointHost = 'graphEndpointHost',
-    graphMeEndpoint = 'graphMeEndpoint',
-    graphScopes = 'graphScopes'
+    graphMeEndpoint = 'graphMeEndpoint'
 }
 
 interface StoreType {
@@ -17,7 +16,6 @@ interface StoreType {
     aadEndpointHost: string;
     graphEndpointHost: string;
     graphMeEndpoint: string;
-    graphScopes: string;
 }
 
 const store = new Store<StoreType>({
@@ -27,8 +25,7 @@ const store = new Store<StoreType>({
         redirectUri: '',
         aadEndpointHost: '',
         graphEndpointHost: '',
-        graphMeEndpoint: '',
-        graphScopes: ''
+        graphMeEndpoint: ''
     }
 });
 

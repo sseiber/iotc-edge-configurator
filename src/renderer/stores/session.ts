@@ -33,9 +33,6 @@ export class SessionStore {
     // Graph resources
     public graphMeEndpoint = 'v1.0/me';
 
-    // Graph scopes
-    public graphScopes = 'User.Read';
-
     public userId = '';
     public displayName = '';
     public email = '';
@@ -55,8 +52,7 @@ export class SessionStore {
             redirectUri: this.redirectUri,
             aadEndpointHost: this.aadEndpointHost,
             graphEndpointHost: this.graphEndpointHost,
-            graphMeEndpoint: this.graphMeEndpoint,
-            graphScopes: this.graphScopes
+            graphMeEndpoint: this.graphMeEndpoint
         });
     }
 

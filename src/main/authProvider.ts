@@ -16,7 +16,7 @@ import {
 } from 'path';
 import { parse as urlParse } from 'url';
 import axios from 'axios';
-import { logger } from './logger';
+import logger from './logger';
 
 const ModuleName = 'authProvider';
 
@@ -27,7 +27,6 @@ export interface IMsalConfig {
     aadEndpointHost: string;
     graphEndpointHost: string;
     graphMeEndpoint: string;
-    graphScopes: string;
 }
 
 // Configuration object to be passed to MSAL instance on creation.
@@ -60,23 +59,25 @@ export class AuthProvider {
     private account: AccountInfo;
 
     public initialize(): boolean {
-        logger([ModuleName, 'info'], `initialize`);
+        logger.log([ModuleName, 'info'], `initialize`);
 
         let result = true;
 
         try {
             // Initialize a public client application. For more information, visit:
             // https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-node/docs/initialize-public-client-application.md
+            const nodeAuthOptions = {
+                clientId: store.get(StoreKeys.clientId),
+                authority: `${store.get(StoreKeys.aadEndpointHost)}${store.get(StoreKeys.tenantId)}`,
+                redirectUri: store.get(StoreKeys.redirectUri)
+            };
+
             this.clientApplication = new PublicClientApplication({
-                auth: {
-                    clientId: store.get(StoreKeys.clientId),
-                    authority: `${store.get(StoreKeys.aadEndpointHost)}${store.get(StoreKeys.tenantId)}`
-                },
+                auth: nodeAuthOptions,
                 system: {
                     loggerOptions: {
                         loggerCallback(_loglevel: LogLevel, message: string, _containsPii: boolean) {
-                            // eslint-disable-next-line no-console
-                            console.log(message);
+                            logger.log(['Azure/msal-node', 'info'], message);
                         },
                         piiLoggingEnabled: false,
                         logLevel: LogLevel.Verbose
@@ -91,7 +92,7 @@ export class AuthProvider {
             this.setRequestObjects();
         }
         catch (ex) {
-            logger([ModuleName, 'error'], `initialize error: ${ex.message}`);
+            logger.log([ModuleName, 'error'], `initialize error: ${ex.message}`);
 
             result = false;
         }
@@ -100,22 +101,32 @@ export class AuthProvider {
     }
 
     public async signin(authWindow: BrowserWindow): Promise<AccountInfo> {
-        logger([ModuleName, 'info'], `signin`);
+        logger.log([ModuleName, 'info'], `signin`);
 
-        let authResult;
+        authWindow.webContents.on('will-redirect', (_event: Electron.Event, responseUrl: string) => {
+            logger.log([ModuleName, 'info'], `will-redirect url found: ${responseUrl}`);
+        });
+
+        authWindow.webContents.on('did-redirect-navigation', (_event: Electron.Event, responseUrl: string) => {
+            logger.log([ModuleName, 'info'], `did-redirect-navigatation url found: ${responseUrl}`);
+        });
+
+        let authResponse;
 
         try {
-            authResult = await this.getTokenInteractive(authWindow, this.authCodeUrlParams);
+            authResponse = await this.getTokenInteractive(authWindow, this.authCodeUrlParams);
         }
         catch (ex) {
-            logger([ModuleName, 'error'], `Error during signin: ${ex.message}`);
+            logger.log([ModuleName, 'error'], `Error during signin: ${ex.message}`);
         }
 
-        return this.handleResponse(authResult);
+        this.account = authResponse?.account || await this.getAccount();
+
+        return this.account;
     }
 
     public async signout(): Promise<void> {
-        logger([ModuleName, 'info'], `signin`);
+        logger.log([ModuleName, 'info'], `signin`);
 
         try {
             if (this.account) {
@@ -125,12 +136,12 @@ export class AuthProvider {
             }
         }
         catch (ex) {
-            logger([ModuleName, 'error'], `Error during signout: ${ex.message}`);
+            logger.log([ModuleName, 'error'], `Error during signout: ${ex.message}`);
         }
     }
 
     public async getToken(authWindow: BrowserWindow, tokenRequest: any): Promise<string> {
-        logger([ModuleName, 'info'], `getToken`);
+        logger.log([ModuleName, 'info'], `getToken`);
 
         let authResponse;
 
@@ -138,14 +149,14 @@ export class AuthProvider {
             authResponse = await this.getTokenInteractive(authWindow, tokenRequest);
         }
         catch (ex) {
-            logger([ModuleName, 'error'], `getToken error: ${ex.message}`);
+            logger.log([ModuleName, 'error'], `getToken error: ${ex.message}`);
         }
 
-        return authResponse?.accessToken || null;
+        return authResponse?.accessToken;
     }
 
     public async callEndpointWithToken(graphEndpointUrl: string, token: string): Promise<any> {
-        logger([ModuleName, 'info'], `callEndpointWithToken`);
+        logger.log([ModuleName, 'info'], `callEndpointWithToken`);
 
         const response = {
             statusCode: 200,
@@ -208,7 +219,7 @@ export class AuthProvider {
 
     // This method contains an implementation of access token acquisition in authorization code flow
     private async getTokenInteractive(authWindow: BrowserWindow, tokenRequest: any): Promise<AuthenticationResult> {
-        logger([ModuleName, 'info'], `getTokenInteractive`);
+        logger.log([ModuleName, 'info'], `getTokenInteractive`);
 
         // Proof Key for Code Exchange (PKCE) Setup
 
@@ -238,18 +249,18 @@ export class AuthProvider {
                 codeChallengeMethod: this.pkceCodes.challengeMethod // PKCE Code Challenge Method
             };
 
-            const authCodeUrl = await this.clientApplication.getAuthCodeUrl(authCodeUrlParams);
-
             // To demonstrate best security practices, this Electron sample application makes use of
             // a custom file protocol instead of a regular web (https://) redirect URI in order to
             // handle the redirection step of the authorization flow, as suggested in the OAuth2.0
             // specification for Native Apps.
             const customFileProtocolName = store.get(StoreKeys.redirectUri).split(':')[0]; // e.g. 'msal'
 
-            protocol.registerFileProtocol(customFileProtocolName, (req, callback) => {
+            protocol.registerFileProtocol(customFileProtocolName, (req, registerFileProtocolCallback) => {
                 const requestUrl = urlParse(req.url, true);
-                callback(pathNormalize(`${__dirname}/${requestUrl.path}`));
+                registerFileProtocolCallback(pathNormalize(`${__dirname}/${requestUrl.path}`));
             });
+
+            const authCodeUrl = await this.clientApplication.getAuthCodeUrl(authCodeUrlParams);
 
             const authCode = await this.listenForAuthCode(authCodeUrl, authWindow);
 
@@ -261,7 +272,7 @@ export class AuthProvider {
             });
         }
         catch (ex) {
-            logger([ModuleName, 'error'], `getTokenInteractive error: ${ex.message}`);
+            logger.log([ModuleName, 'error'], `getTokenInteractive error: ${ex.message}`);
         }
 
         return authResponse;
@@ -269,7 +280,7 @@ export class AuthProvider {
 
     // Listen for authorization code response from Azure AD
     private async listenForAuthCode(navigateUrl: string, authWindow: BrowserWindow): Promise<string> {
-        logger([ModuleName, 'info'], `listenForAuthCode`);
+        logger.log([ModuleName, 'info'], `listenForAuthCode`);
 
         let authCode = '';
 
@@ -289,35 +300,16 @@ export class AuthProvider {
             });
         }
         catch (ex) {
-            logger([ModuleName, 'error'], `listenForAuthCode error: ${ex.message}`);
+            logger.log([ModuleName, 'error'], `listenForAuthCode error: ${ex.message}`);
         }
 
         return authCode;
     }
 
-    // Handles the response from a popup or redirect. If response is null, will check if we have any accounts and attempt to sign in.
-    private async handleResponse(response: AuthenticationResult): Promise<AccountInfo> {
-        logger([ModuleName, 'info'], `handleResponse`);
-
-        try {
-            if (response !== null) {
-                this.account = response.account;
-            }
-            else {
-                this.account = await this.getAccount();
-            }
-        }
-        catch (ex) {
-            logger([ModuleName, 'error'], `handleResponse error: ${ex.message}`);
-        }
-
-        return this.account;
-    }
-
     // Calls getAllAccounts and determines the correct account to sign into, currently defaults to first account found in cache.
     // https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-common/docs/Accounts.md
     private async getAccount(): Promise<AccountInfo> {
-        logger([ModuleName, 'info'], `getAccount`);
+        logger.log([ModuleName, 'info'], `getAccount`);
 
         let accountResult;
 
@@ -326,11 +318,11 @@ export class AuthProvider {
             const currentAccounts = await cache.getAllAccounts();
 
             if (currentAccounts === null) {
-                logger([ModuleName, 'info'], 'No accounts detected');
+                logger.log([ModuleName, 'info'], 'No accounts detected');
             }
             else if (currentAccounts.length > 1) {
                 // Add choose account code here
-                logger([ModuleName, 'info'], 'Multiple accounts detected, need to add choose account code.');
+                logger.log([ModuleName, 'info'], 'Multiple accounts detected, need to add choose account code.');
 
                 accountResult = currentAccounts[0];
             }
@@ -339,7 +331,7 @@ export class AuthProvider {
             }
         }
         catch (ex) {
-            logger([ModuleName, 'error'], `getAccount error: ${ex.message}`);
+            logger.log([ModuleName, 'error'], `getAccount error: ${ex.message}`);
         }
 
         return accountResult;

@@ -1,8 +1,15 @@
+const path = require('path');
+
+const devtoolsConfig =
+    (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true')
+        ? {
+            devtool: 'source-map',
+        }
+        : {};
+
 module.exports = {
-    // This is the main entry point for your application, it's the first file
-    // that runs in the main process.
+    ...devtoolsConfig,
     entry: './src/main/main.ts',
-    // Put your normal webpack config below here
     module: {
         rules: require('./webpack.rules'),
     },

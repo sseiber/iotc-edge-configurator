@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent } from 'electron';
 import store, { StoreKeys } from './store';
-import { logger } from './logger';
+import logger from './logger';
 import MenuBuilder from './menu';
 import { join as pathJoin } from 'path';
 import { platform as osPlatform } from 'os';
@@ -30,11 +30,21 @@ if (require('electron-squirrel-startup')) {
     app.quit();
 }
 
-logger([ModuleName, 'info'], `Starting main module...`);
+logger.log([ModuleName, 'info'], `Starting main module...`);
 
 let mainWindow: BrowserWindow;
 
+if (process.env.NODE_ENV === 'production') {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    require('source-map-support').install();
+}
+
+// @ts-ignore
+const isDevelopment = process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
+
 const createWindow = async (): Promise<void> => {
+    logger.log([ModuleName, 'info'], `MAIN_WINDOW_WEBPACK_ENTRY: ${MAIN_WINDOW_WEBPACK_ENTRY}`);
+
     // Create the browser window.
     mainWindow = new BrowserWindow({
         width: 1024,
@@ -55,7 +65,7 @@ const createWindow = async (): Promise<void> => {
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
 
-    logger([ModuleName, 'info'], `electronStore value 'clientId': ${store.get(StoreKeys.clientId)}`);
+    logger.log([ModuleName, 'info'], `electronStore value 'clientId': ${store.get(StoreKeys.clientId)}`);
 };
 
 const authProvider = new AuthProvider();
@@ -64,7 +74,9 @@ authProvider.initialize();
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.on('ready', () => {
+    void createWindow();
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -86,7 +98,7 @@ app.on('activate', async () => {
 // ContextBridge event handlers
 
 ipcMain.handle(Ipc_Log, async (_event: IpcMainInvokeEvent, tags: string[], message: string): Promise<void> => {
-    logger(tags, message);
+    logger.log(tags, message);
 });
 
 ipcMain.handle(Ipc_MsalConfig, async (_event: IpcMainInvokeEvent, msalConfig: IMsalConfig): Promise<void> => {
@@ -96,21 +108,23 @@ ipcMain.handle(Ipc_MsalConfig, async (_event: IpcMainInvokeEvent, msalConfig: IM
     store.set(StoreKeys.aadEndpointHost, msalConfig.aadEndpointHost);
     store.set(StoreKeys.graphEndpointHost, msalConfig.graphEndpointHost);
     store.set(StoreKeys.graphMeEndpoint, msalConfig.graphMeEndpoint);
-    store.set(StoreKeys.graphScopes, msalConfig.graphScopes);
 });
 
 ipcMain.handle(Ipc_Signin, async (_event: IpcMainInvokeEvent): Promise<AccountInfo> => {
-    logger([ModuleName, 'info'], `${Ipc_Signin} handler`);
+    logger.log([ModuleName, 'info'], `${Ipc_Signin} handler`);
 
     const accountInfo = await authProvider.signin(mainWindow);
 
-    // await this.mainWindow.loadFile(pathJoin(__dirname, './index.html'));
+    await mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+    // logger.log([ModuleName, 'info'], `__dirname: ${__dirname}`);
+
+    // await mainWindow.loadFile(pathJoin(__dirname, '../renderer/main_window/index.html'));
 
     return accountInfo;
 });
 
 ipcMain.handle(Ipc_Signout, async (_event: IpcMainInvokeEvent): Promise<void> => {
-    logger([ModuleName, 'info'], `${Ipc_Signout} handler`);
+    logger.log([ModuleName, 'info'], `${Ipc_Signout} handler`);
 
     await authProvider.signout();
 
@@ -118,10 +132,10 @@ ipcMain.handle(Ipc_Signout, async (_event: IpcMainInvokeEvent): Promise<void> =>
 });
 
 ipcMain.handle(Ipc_GetProfile, async (_event: IpcMainInvokeEvent): Promise<any> => {
-    logger([ModuleName, 'info'], `${Ipc_GetProfile} handler`);
+    logger.log([ModuleName, 'info'], `${Ipc_GetProfile} handler`);
 
     const tokenRequest = {
-        scopes: store.get(StoreKeys.graphScopes).split(' ')
+        scopes: ['User.Read']
     };
 
     const token = await authProvider.getToken(mainWindow, tokenRequest);

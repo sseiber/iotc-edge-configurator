@@ -21,6 +21,39 @@
                 "bar"
             ],
             "cwd": "${workspaceFolder}/src"
+        },
+        {
+            "name": "Debug Main Process",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/src",
+            "program": "${workspaceFolder}/.webpack/main/index.js",
+            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+            "windows": {
+                "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
+            },
+            "args": [
+                "."
+            ],
+            "sourceMaps": true,
+            "smartStep": true,
+            "showAsyncStacks": true,
+            "outputCapture": "std"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "VS Code - Main Process",
+            "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron",
+            "program": "${workspaceRoot}/.webpack/main/index.js",
+            "runtimeArgs": [
+                ".",
+                // this args for attaching render process
+                "--remote-debugging-port=9222"
+            ],
+            "windows": {
+                "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron.cmd"
+            }
         }
     ]
 }

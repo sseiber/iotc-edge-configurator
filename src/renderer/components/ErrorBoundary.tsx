@@ -1,6 +1,6 @@
 import React, { ErrorInfo, Component } from 'react';
 import { Button, Modal, Form } from 'semantic-ui-react';
-import { bind } from '../../utils';
+import { bind } from '../utils';
 
 interface IErrorBoundaryProps {
     children: any;
