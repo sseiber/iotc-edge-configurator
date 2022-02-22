@@ -5,47 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Electron Main",
+            "name": "Debug Electron Main Process",
             "type": "node",
             "request": "launch",
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron-forge-vscode-nix",
-            "windows": {
-                "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron-forge-vscode-win.cmd"
-            },
-            "sourceMaps": true,
-            "smartStep": true,
-            "showAsyncStacks": true,
-            // runtimeArgs will be passed directly to your Electron application
-            "runtimeArgs": [
-                "foo",
-                "bar"
-            ],
-            "cwd": "${workspaceFolder}/src"
-        },
-        {
-            "name": "Debug Main Process",
-            "type": "node",
-            "request": "launch",
-            "cwd": "${workspaceFolder}/src",
-            "program": "${workspaceFolder}/.webpack/main/index.js",
-            "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
-            "windows": {
-                "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
-            },
-            "args": [
-                "."
-            ],
-            "sourceMaps": true,
-            "smartStep": true,
-            "showAsyncStacks": true,
-            "outputCapture": "std"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "VS Code - Main Process",
-            "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron",
             "program": "${workspaceRoot}/.webpack/main/index.js",
+            "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron",
             "runtimeArgs": [
                 ".",
                 // this args for attaching render process
@@ -53,7 +17,10 @@
             ],
             "windows": {
                 "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron.cmd"
-            }
+            },
+            "sourceMaps": true,
+            "smartStep": true,
+            "showAsyncStacks": true,
         }
     ]
 }

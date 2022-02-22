@@ -24,7 +24,7 @@ export class SessionStore {
     public tenantId = '72f988bf-86f1-41af-91ab-2d7cd011db47';
 
     // MSAL auth configuration
-    public redirectUri = 'msal://redirect';
+    public redirectUri = 'msal4072cff6-8d4f-49e8-ac6c-fead2b684971://auth';
 
     // AAD endpoints
     public aadEndpointHost = 'https://login.microsoftonline.com/';
@@ -32,6 +32,10 @@ export class SessionStore {
 
     // Graph resources
     public graphMeEndpoint = 'v1.0/me';
+
+    public tokenCachePath = '.webpack/data';
+    public tokenCacheName = 'cache.json';
+    public appProtocolName = 'msal4072cff6-8d4f-49e8-ac6c-fead2b684971';
 
     public userId = '';
     public displayName = '';
@@ -52,7 +56,10 @@ export class SessionStore {
             redirectUri: this.redirectUri,
             aadEndpointHost: this.aadEndpointHost,
             graphEndpointHost: this.graphEndpointHost,
-            graphMeEndpoint: this.graphMeEndpoint
+            graphMeEndpoint: this.graphMeEndpoint,
+            tokenCachePath: this.tokenCachePath,
+            tokenCacheName: this.tokenCacheName,
+            appProtocolName: this.appProtocolName
         });
     }
 

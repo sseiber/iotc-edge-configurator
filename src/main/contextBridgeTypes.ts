@@ -1,5 +1,5 @@
 import { AccountInfo } from '@azure/msal-node';
-import { IMsalConfig } from './authProvider';
+import { IMsalConfig } from './authProvider/authProvider';
 
 export const Ipc_Log = 'ipc_log';
 export const Ipc_MsalConfig = 'ipc_msalConfig';

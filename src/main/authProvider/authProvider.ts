@@ -1,22 +1,21 @@
 import {
-    protocol,
     BrowserWindow
 } from 'electron';
-import store, { StoreKeys } from './store';
+import { cachePlugin } from './cachePlugin';
+import { FileProtocolAuthorizationCodeListener } from './FileProtocolAuthorizationCodeListener';
+import store, { StoreKeys } from '../store';
 import {
     PublicClientApplication,
     LogLevel,
     CryptoProvider,
     AccountInfo,
-    AuthenticationResult
+    AuthenticationResult,
+    AuthorizationUrlRequest,
+    AuthorizationCodeRequest,
+    SilentFlowRequest
 } from '@azure/msal-node';
-import {
-    // join as pathJoin,
-    normalize as pathNormalize
-} from 'path';
-import { parse as urlParse } from 'url';
 import axios from 'axios';
-import logger from './logger';
+import logger from '../logger';
 
 const ModuleName = 'authProvider';
 
@@ -27,36 +26,43 @@ export interface IMsalConfig {
     aadEndpointHost: string;
     graphEndpointHost: string;
     graphMeEndpoint: string;
+    tokenCachePath: string;
+    tokenCacheName: string;
+    appProtocolName: string;
 }
 
 // Configuration object to be passed to MSAL instance on creation.
 // For a full list of MSAL Node configuration parameters, visit:
 // https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-node/docs/configuration.md
-// const MsalConfig = {
+// const MSAL_CONFIG: Configuration = {
 //     auth: {
-//         clientId: process.env.CLIENT_ID,
-//         authority: `${process.env.AAD_ENDPOINT_HOST}${process.env.TENANT_ID}`,
-//         redirectUri: process.env.REDIRECT_URI
+//         clientId: '<CLIENT_ID>',
+//         authority: 'https://login.windows-ppe.net/common/'
+//     },
+//     cache: {
+//         cachePlugin
 //     },
 //     system: {
 //         loggerOptions: {
-//             loggerCallback(_loglevel: LogLevel, message: string, _containsPii: boolean) {
-//                 // eslint-disable-next-line no-console
-//                 console.log(message);
+//             loggerCallback(_loglevel: any, message: any, _containsPii: any) {
+//                 logger.log([ModuleName, 'info'], message);
 //             },
 //             piiLoggingEnabled: false,
-//             logLevel: LogLevel.Verbose
+//             logLevel: LogLevel.Info
 //         }
 //     }
 // };
 
 export class AuthProvider {
     private clientApplication: PublicClientApplication;
-    private cryptoProvider: CryptoProvider;
-    private authCodeUrlParams: any;
-    private authCodeRequest: any;
-    private pkceCodes: any;
     private account: AccountInfo;
+    private authCodeUrlParams: AuthorizationUrlRequest;
+    private authCodeRequest: AuthorizationCodeRequest;
+    private silentProfileRequest: SilentFlowRequest;
+
+    public get currentAccount(): AccountInfo {
+        return this.account;
+    }
 
     public initialize(): boolean {
         logger.log([ModuleName, 'info'], `initialize`);
@@ -66,14 +72,14 @@ export class AuthProvider {
         try {
             // Initialize a public client application. For more information, visit:
             // https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-node/docs/initialize-public-client-application.md
-            const nodeAuthOptions = {
-                clientId: store.get(StoreKeys.clientId),
-                authority: `${store.get(StoreKeys.aadEndpointHost)}${store.get(StoreKeys.tenantId)}`,
-                redirectUri: store.get(StoreKeys.redirectUri)
-            };
-
             this.clientApplication = new PublicClientApplication({
-                auth: nodeAuthOptions,
+                auth: {
+                    clientId: store.get(StoreKeys.clientId),
+                    authority: `${store.get(StoreKeys.aadEndpointHost)}${store.get(StoreKeys.tenantId)}`
+                },
+                cache: {
+                    cachePlugin
+                },
                 system: {
                     loggerOptions: {
                         loggerCallback(_loglevel: LogLevel, message: string, _containsPii: boolean) {
@@ -84,10 +90,8 @@ export class AuthProvider {
                     }
                 }
             });
-            this.account = null;
 
-            // Initialize CryptoProvider instance
-            this.cryptoProvider = new CryptoProvider();
+            this.account = null;
 
             this.setRequestObjects();
         }
@@ -107,20 +111,23 @@ export class AuthProvider {
             logger.log([ModuleName, 'info'], `will-redirect url found: ${responseUrl}`);
         });
 
-        authWindow.webContents.on('did-redirect-navigation', (_event: Electron.Event, responseUrl: string) => {
-            logger.log([ModuleName, 'info'], `did-redirect-navigatation url found: ${responseUrl}`);
-        });
-
-        let authResponse;
-
-        try {
-            authResponse = await this.getTokenInteractive(authWindow, this.authCodeUrlParams);
+        const authResponse = await this.getTokenInteractive(authWindow, this.authCodeUrlParams);
+        if (authResponse !== null) {
+            this.account = authResponse.account;
         }
-        catch (ex) {
-            logger.log([ModuleName, 'error'], `Error during signin: ${ex.message}`);
+        else {
+            this.account = await this.getAccount();
         }
 
-        this.account = authResponse?.account || await this.getAccount();
+        return this.account;
+    }
+
+    public async signinSilent(): Promise<AccountInfo> {
+        logger.log([ModuleName, 'info'], `signinSilent`);
+
+        if (!this.account) {
+            this.account = await this.getAccount();
+        }
 
         return this.account;
     }
@@ -138,21 +145,6 @@ export class AuthProvider {
         catch (ex) {
             logger.log([ModuleName, 'error'], `Error during signout: ${ex.message}`);
         }
-    }
-
-    public async getToken(authWindow: BrowserWindow, tokenRequest: any): Promise<string> {
-        logger.log([ModuleName, 'info'], `getToken`);
-
-        let authResponse;
-
-        try {
-            authResponse = await this.getTokenInteractive(authWindow, tokenRequest);
-        }
-        catch (ex) {
-            logger.log([ModuleName, 'error'], `getToken error: ${ex.message}`);
-        }
-
-        return authResponse?.accessToken;
     }
 
     public async callEndpointWithToken(graphEndpointUrl: string, token: string): Promise<any> {
@@ -196,7 +188,15 @@ export class AuthProvider {
 
     // Initialize request objects used by this AuthModule.
     private setRequestObjects(): void {
-        const requestScopes = ['openid', 'profile', 'User.Read'];
+        logger.log([ModuleName, 'info'], `setRequestObjects`);
+
+        const baseSilentRequest = {
+            // @ts-ignore
+            account: null,
+            forceRefresh: false
+        };
+
+        const requestScopes = ['User.Read'];
         const redirectUri = store.get(StoreKeys.redirectUri);
 
         this.authCodeUrlParams = {
@@ -207,14 +207,67 @@ export class AuthProvider {
         this.authCodeRequest = {
             scopes: requestScopes,
             redirectUri,
-            code: null
+            code: ''
         };
 
-        this.pkceCodes = {
-            challengeMethod: 'S256', // Use SHA256 Algorithm
-            verifier: '', // Generate a code verifier for the Auth Code Request first
-            challenge: '' // Generate a code challenge from the previously generated code verifier
+        this.silentProfileRequest = {
+            ...baseSilentRequest,
+            scopes: ['User.Read']
         };
+    }
+
+    public async getProfileToken(authWindow: BrowserWindow): Promise<string> {
+        logger.log([ModuleName, 'info'], `getProfileToken`);
+
+        return this.getToken(authWindow, this.silentProfileRequest);
+    }
+
+    public async getToken(authWindow: BrowserWindow, tokenRequest: SilentFlowRequest): Promise<string> {
+        logger.log([ModuleName, 'info'], `getToken`);
+
+        let authenticationResult: AuthenticationResult;
+
+        const account = this.account || await this.getAccount();
+        if (account) {
+            tokenRequest.account = account;
+            authenticationResult = await this.getTokenSilent(authWindow, tokenRequest);
+        }
+        else {
+            const authCodeRequest = { ...this.authCodeUrlParams, ...tokenRequest };
+            authenticationResult = await this.getTokenInteractive(authWindow, authCodeRequest);
+        }
+
+        return authenticationResult?.accessToken || null;
+    }
+
+    private async getTokenSilent(authWindow: BrowserWindow, tokenRequest: SilentFlowRequest): Promise<AuthenticationResult> {
+        logger.log([ModuleName, 'info'], `getTokenSilent`);
+
+        let authenticationResult;
+
+        try {
+            authenticationResult = await this.clientApplication.acquireTokenSilent(tokenRequest);
+        }
+        catch (ex) {
+            logger.log([ModuleName, 'info'], `Silent token acquisition failed, acquiring token using pop up`);
+
+            authenticationResult = null;
+        }
+
+        if (!authenticationResult) {
+            try {
+                const authCodeRequest = { ...this.authCodeUrlParams, ...tokenRequest };
+
+                authenticationResult = await this.getTokenInteractive(authWindow, authCodeRequest);
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'info'], `Silent token acquisition failed, acquiring token using pop up`);
+
+                authenticationResult = null;
+            }
+        }
+
+        return authenticationResult;
     }
 
     // This method contains an implementation of access token acquisition in authorization code flow
@@ -234,77 +287,82 @@ export class AuthProvider {
         // For details on PKCE code generation logic, consult the
         // PKCE specification https://tools.ietf.org/html/rfc7636#section-4
 
-        let authResponse;
+        let authenticationResult;
 
         try {
-            const { verifier, challenge } = await this.cryptoProvider.generatePkceCodes();
-
-            this.pkceCodes.verifier = verifier;
-            this.pkceCodes.challenge = challenge;
+            const cryptoProvider = new CryptoProvider();
+            const { challenge, verifier } = await cryptoProvider.generatePkceCodes();
 
             const authCodeUrlParams = {
                 ...this.authCodeUrlParams,
                 scopes: tokenRequest.scopes,
-                codeChallenge: this.pkceCodes.challenge, // PKCE Code Challenge
-                codeChallengeMethod: this.pkceCodes.challengeMethod // PKCE Code Challenge Method
+                codeChallenge: challenge, // PKCE Code Challenge
+                codeChallengeMethod: 'S256' // PKCE Code Challenge Method
             };
 
-            // To demonstrate best security practices, this Electron sample application makes use of
-            // a custom file protocol instead of a regular web (https://) redirect URI in order to
-            // handle the redirection step of the authorization flow, as suggested in the OAuth2.0
-            // specification for Native Apps.
-            const customFileProtocolName = store.get(StoreKeys.redirectUri).split(':')[0]; // e.g. 'msal'
-
-            protocol.registerFileProtocol(customFileProtocolName, (req, registerFileProtocolCallback) => {
-                const requestUrl = urlParse(req.url, true);
-                registerFileProtocolCallback(pathNormalize(`${__dirname}/${requestUrl.path}`));
-            });
-
+            // Get Auth Code URL
             const authCodeUrl = await this.clientApplication.getAuthCodeUrl(authCodeUrlParams);
 
-            const authCode = await this.listenForAuthCode(authCodeUrl, authWindow);
+            const authCode = await this.listenForAuthorizationCode(authCodeUrl, authWindow);
 
-            authResponse = await this.clientApplication.acquireTokenByCode({
+            // Use Authorization Code and PKCE Code verifier to make token request
+            authenticationResult = this.clientApplication.acquireTokenByCode({
                 ...this.authCodeRequest,
-                scopes: tokenRequest.scopes,
                 code: authCode,
-                codeVerifier: this.pkceCodes.verifier // PKCE Code Verifier
+                codeVerifier: verifier
             });
         }
         catch (ex) {
             logger.log([ModuleName, 'error'], `getTokenInteractive error: ${ex.message}`);
+
+            authenticationResult = null;
         }
 
-        return authResponse;
+        return authenticationResult;
     }
 
-    // Listen for authorization code response from Azure AD
-    private async listenForAuthCode(navigateUrl: string, authWindow: BrowserWindow): Promise<string> {
-        logger.log([ModuleName, 'info'], `listenForAuthCode`);
+    private async listenForAuthorizationCode(navigateUrl: string, authWindow: BrowserWindow): Promise<string> {
+        logger.log([ModuleName, 'info'], `listenForAuthorizationCode`);
 
-        let authCode = '';
+        // Set up custom file protocol to listen for redirect response
+        const authCodeListener = new FileProtocolAuthorizationCodeListener(store.get(StoreKeys.appProtocolName));
+        const codePromise = authCodeListener.registerProtocolAndStartListening();
 
-        try {
-            await authWindow.loadURL(navigateUrl);
+        await authWindow.loadURL(navigateUrl);
 
-            authCode = await new Promise((resolve, reject) => {
-                authWindow.webContents.on('will-redirect', (_event: Electron.Event, responseUrl: string) => {
-                    try {
-                        const parsedUrl = new URL(responseUrl);
-                        return resolve(parsedUrl.searchParams.get('code'));
-                    }
-                    catch (err) {
-                        return reject(err);
-                    }
-                });
-            });
-        }
-        catch (ex) {
-            logger.log([ModuleName, 'error'], `listenForAuthCode error: ${ex.message}`);
-        }
+        const code = await codePromise;
 
-        return authCode;
+        authCodeListener.unregisterProtocol();
+
+        return code;
     }
+
+    // private async listenForAuthorizationCode2(navigateUrl: string, authWindow: BrowserWindow): Promise<string> {
+    //     logger.log([ModuleName, 'info'], `listenForAuthCode`);
+
+    //     let authCode = '';
+
+    //     try {
+    //         await authWindow.loadURL(navigateUrl);
+
+    //         authCode = await new Promise((resolve, reject) => {
+    //             authWindow.webContents.on('will-redirect', (_event: Electron.Event, responseUrl: string) => {
+    //                 try {
+    //                     const parsedUrl = new URL(responseUrl);
+    //                     return resolve(parsedUrl.searchParams.get('code'));
+    //                 }
+    //                 catch (err) {
+    //                     return reject(err);
+    //                 }
+    //             });
+    //         });
+    //     }
+    //     catch (ex) {
+    //         logger.log([ModuleName, 'error'], `listenForAuthorizationCode error: ${ex.message}`);
+    //     }
+
+    //     return authCode;
+    // }
 
     // Calls getAllAccounts and determines the correct account to sign into, currently defaults to first account found in cache.
     // https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-common/docs/Accounts.md
