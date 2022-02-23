@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, IpcMainInvokeEvent } from 'electron';
+import { App, BrowserWindow, ipcMain, IpcMainInvokeEvent } from 'electron';
 import store, { StoreKeys } from './store';
 import logger from './logger';
 import MenuBuilder from './menu';
@@ -10,6 +10,7 @@ import {
     Ipc_MsalConfig,
     Ipc_Signin,
     Ipc_Signout,
+    Ipc_GetAccount,
     Ipc_GetProfile
 } from './contextBridgeTypes';
 import { AccountInfo } from '@azure/msal-node';
@@ -23,10 +24,13 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 const ModuleName = 'MainApp';
 
 export class MainApp {
+    private electronApp: App;
     private mainWindow: BrowserWindow = null;
     private authProvider: AuthProvider = null;
 
-    constructor() {
+    constructor(electronApp: App) {
+        this.electronApp = electronApp;
+
         this.registerEventHandlers();
     }
 
@@ -37,45 +41,41 @@ export class MainApp {
         // Create the main browser window
         this.createMainWindow();
 
-        // and load the index.html of the app
-        await this.mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-
         const menuBuilder = new MenuBuilder(this.mainWindow);
         menuBuilder.buildMenu();
 
-        // Open the DevTools
-        this.mainWindow.webContents.openDevTools();
-
         this.authProvider = new AuthProvider();
-        this.authProvider.initialize();
+        await this.authProvider.initialize();
 
-        await this.attemptSSOSilent();
+        this.mainWindow.once('ready-to-show', () => {
+            this.mainWindow.show();
+            // this.mainWindow.webContents.openDevTools();
+        });
+
+        // and load the index.html of the app
+        await this.mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
     }
 
     public createMainWindow(): void {
         logger.log([ModuleName, 'info'], `createMainWindow`);
 
         this.mainWindow = new BrowserWindow({
-            width: 1024,
-            height: 728,
-            icon: pathJoin('/assets', osPlatform() === 'win32' ? 'icons/icon.ico' : 'icons/64x64.png'),
+            width: 1280,
+            height: 768,
+            show: false,
+            icon: pathJoin(this.getAssetsPath(), osPlatform() === 'win32' ? 'icon.ico' : 'icons/64x64.png'),
             webPreferences: {
+                // nodeIntegration: true,
                 contextIsolation: true,
                 preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY
             }
         });
     }
 
-    private async attemptSSOSilent(): Promise<void> {
-        logger.log([ModuleName, 'info'], `attemptSSOSilent`);
-
-        const account = await this.authProvider.signinSilent();
-
-        await this.mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-
-        if (account) {
-            logger.log([ModuleName, 'info'], 'Successful silent account retrieval');
-        }
+    private getAssetsPath(): string {
+        return this.electronApp.isPackaged
+            ? pathJoin(process.resourcesPath, 'assets')
+            : pathJoin(__dirname, '../renderer/assets');
     }
 
     private registerEventHandlers(): void {
@@ -102,6 +102,7 @@ export class MainApp {
         ipcMain.handle(Ipc_Signin, async (_event: IpcMainInvokeEvent): Promise<AccountInfo> => {
             logger.log([ModuleName, 'info'], `ipcMain ${Ipc_Signin} handler`);
 
+            // use a separate window for a pop-up login ui experience
             // const authWindow = this.createAuthWindow();
 
             const accountInfo = await this.authProvider.signin(this.mainWindow);
@@ -119,6 +120,14 @@ export class MainApp {
             await this.authProvider.signout();
 
             // await mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
+        });
+
+        ipcMain.handle(Ipc_GetAccount, async (_event: IpcMainInvokeEvent): Promise<AccountInfo> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_GetAccount} handler`);
+
+            const foo = this.authProvider?.currentAccount;
+
+            return foo;
         });
 
         ipcMain.handle(Ipc_GetProfile, async (_event: IpcMainInvokeEvent): Promise<any> => {

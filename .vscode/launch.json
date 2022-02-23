@@ -21,6 +21,9 @@
             "sourceMaps": true,
             "smartStep": true,
             "showAsyncStacks": true,
+            "env": {
+                "NODE_ENV": "development",
+            }
         }
     ]
 }

@@ -71,7 +71,7 @@ const App: FC = observer((props: any) => {
             <InfoDialogServiceProvider>
                 <Menu fixed="top" inverted color="grey" style={{ padding: '0em 5em' }}>
                     <Menu.Item as={Link} to={`/`} header>
-                        <Image size="mini" src={`/assets/icon.png`} style={{ marginRight: '1.5em' }} />
+                        <Image size="mini" src={`./assets/icons/64x64.png`} style={{ marginRight: '1.5em' }} />
                         Azure IoT Central Solution Builder
                     </Menu.Item>
                     <Menu.Menu position="right">

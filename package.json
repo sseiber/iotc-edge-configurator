@@ -5,11 +5,11 @@
     "description": "Azure IoT Central Solution Builder",
     "main": ".webpack/main",
     "scripts": {
-        "start": "electron-forge start",
-        "package": "electron-forge package",
-        "make": "electron-forge make",
-        "publish": "electron-forge publish",
-        "lint": "eslint --ext .ts,.tsx ./src"
+        "start": "cross-env NODE_ENV=development electron-forge start",
+        "package": "cross-env NODE_ENV=production electron-forge package",
+        "make": "cross-env NODE_ENV=production electron-forge make",
+        "publish": "cross-env NODE_ENV=production electron-forge publish",
+        "eslint": "eslint -c .eslintrc.json --ext .ts,.tsx,.js ./src"
     },
     "keywords": [
         "azure",
@@ -24,53 +24,7 @@
     },
     "license": "MIT",
     "config": {
-        "forge": {
-            "packagerConfig": {},
-            "makers": [
-                {
-                    "name": "@electron-forge/maker-squirrel",
-                    "config": {
-                        "name": "electron_forge_sample2"
-                    }
-                },
-                {
-                    "name": "@electron-forge/maker-zip",
-                    "platforms": [
-                        "darwin"
-                    ]
-                },
-                {
-                    "name": "@electron-forge/maker-deb",
-                    "config": {}
-                },
-                {
-                    "name": "@electron-forge/maker-rpm",
-                    "config": {}
-                }
-            ],
-            "plugins": [
-                [
-                    "@electron-forge/plugin-webpack",
-                    {
-                        "mainConfig": "./webpackConfigs/webpack.main.config.js",
-                        "devContentSecurityPolicy": "connect-src 'self' *.cloudflare.com azureiotcentral.com *.azureiotcentral.com 'unsafe-eval'",
-                        "renderer": {
-                            "config": "./webpackConfigs/webpack.renderer.config.js",
-                            "entryPoints": [
-                                {
-                                    "html": "./src/renderer/index.html",
-                                    "js": "./src/renderer/index.tsx",
-                                    "name": "main_window",
-                                    "preload": {
-                                        "js": "./src/main/contextBridge.js"
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                ]
-            ]
-        }
+        "forge": "./forge.config.js"
     },
     "devDependencies": {
         "@electron-forge/cli": "^6.0.0-beta.63",
@@ -86,6 +40,7 @@
         "@typescript-eslint/parser": "^5.12.0",
         "@vercel/webpack-asset-relocator-loader": "^1.7.0",
         "copy-webpack-plugin": "^10.2.4",
+        "cross-env": "^7.0.3",
         "css-loader": "^6.6.0",
         "electron": "^17.0.1",
         "eslint": "^8.9.0",

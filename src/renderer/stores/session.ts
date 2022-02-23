@@ -2,6 +2,7 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import { getUserSession } from '../apis/session';
 import {
     Ipc_Signin,
+    Ipc_GetAccount,
     Ipc_MsalConfig
 } from '../../main/contextBridgeTypes';
 
@@ -123,6 +124,9 @@ export class SessionStore {
 
     public async getUserSessionInfo(_userId: string): Promise<void> {
         try {
+            // @ts-ignore
+            const userAccount = await window.ipcApi[Ipc_GetAccount]();
+
             const response = await getUserSession();
             const responsePayload = response.payload;
 

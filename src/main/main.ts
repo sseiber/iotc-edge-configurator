@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron';
-import store, { StoreKeys } from './store';
+// import store, { StoreKeys } from './store';
 import logger from './logger';
 import { MainApp } from './mainApp';
 
@@ -13,11 +13,11 @@ if (require('electron-squirrel-startup')) {
     app.quit();
 }
 
-const appProtocol = store.get(StoreKeys.appProtocolName);
+// const appProtocol = store.get(StoreKeys.appProtocolName);
 
-app.setAsDefaultProtocolClient(appProtocol);
+// app.setAsDefaultProtocolClient(appProtocol);
 
-const mainApp = new MainApp();
+const mainApp = new MainApp(app);
 
 app.on('open-url', (ev: Event, appUrl: string) => {
     ev.preventDefault();
@@ -47,7 +47,9 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-    logger.log([ModuleName, 'info'], `electron app 'activate' message received`);
+    // logger.log([ModuleName, 'info'], `electron app 'activate' message received`);
+    // eslint-disable-next-line no-console
+    console.log(`electron app 'activate' message received`);
 
     // On OS X it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.

@@ -7,8 +7,9 @@ module.exports = [
     new CopyPlugin({
         patterns: [
             {
-                from: './assets',
+                from: 'src/assets',
                 to: 'assets',
+                toType: 'dir',
                 globOptions: {
                     ignore: ['__mocks__/**', 'index.ts']
                 }

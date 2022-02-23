@@ -10,18 +10,19 @@ class Logger {
     // [2022-02-16T12:57:38-0800] INFO: [startup,info] ✅ Server started
     public log(tags: string[], ...params: any[]): void {
         const checkTags = Array.isArray(tags) ? tags : [];
+        const message = `[${checkTags.join(', ')}] ${(params || []).join(' ')}`;
 
         if (checkTags.includes('debug')) {
-            log.debug(params);
+            log.debug(message);
         }
         else if (checkTags.includes('error')) {
-            log.error(params);
+            log.error(message);
         }
         else if (checkTags.includes('warn')) {
-            log.warn(params);
+            log.warn(message);
         }
         else {
-            log.info(params);
+            log.info(message);
         }
     }
 }

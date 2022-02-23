@@ -1,19 +1,18 @@
 const path = require('path');
 
-const devtoolsConfig =
-    (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true')
-        ? {
-            devtool: 'source-map',
-        }
-        : {};
+const devConfig = (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true');
 
 module.exports = {
-    ...devtoolsConfig,
+    mode: devConfig ? 'development' : 'production',
+    devtool: 'source-map',
     entry: './src/main/main.ts',
     module: {
-        rules: require('./webpack.rules'),
+        rules: require('./webpack.rules')
     },
     resolve: {
-        extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.json'],
+        extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.json']
     },
+    optimization: {
+        minimize: !devConfig
+    }
 };

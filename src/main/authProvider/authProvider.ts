@@ -1,7 +1,7 @@
 import {
     BrowserWindow
 } from 'electron';
-import { cachePlugin } from './cachePlugin';
+// import { cachePlugin } from './cachePlugin';
 import { FileProtocolAuthorizationCodeListener } from './FileProtocolAuthorizationCodeListener';
 import store, { StoreKeys } from '../store';
 import {
@@ -64,7 +64,7 @@ export class AuthProvider {
         return this.account;
     }
 
-    public initialize(): boolean {
+    public async initialize(): Promise<boolean> {
         logger.log([ModuleName, 'info'], `initialize`);
 
         let result = true;
@@ -77,9 +77,9 @@ export class AuthProvider {
                     clientId: store.get(StoreKeys.clientId),
                     authority: `${store.get(StoreKeys.aadEndpointHost)}${store.get(StoreKeys.tenantId)}`
                 },
-                cache: {
-                    cachePlugin
-                },
+                // cache: {
+                //     cachePlugin
+                // },
                 system: {
                     loggerOptions: {
                         loggerCallback(_loglevel: LogLevel, message: string, _containsPii: boolean) {
@@ -91,9 +91,12 @@ export class AuthProvider {
                 }
             });
 
-            this.account = null;
-
             this.setRequestObjects();
+
+            this.account = await this.signinSilent();
+            if (this.account) {
+                logger.log([ModuleName, 'info'], 'Successful silent account retrieval');
+            }
         }
         catch (ex) {
             logger.log([ModuleName, 'error'], `initialize error: ${ex.message}`);

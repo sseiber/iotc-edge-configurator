@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "outDir": "dist",
+        "outDir": "./dist",
         "module": "commonjs",
         "moduleResolution": "node",
         "target": "ES6",
@@ -12,7 +12,7 @@
         "noUnusedParameters": true,
         "skipLibCheck": true,
         "esModuleInterop": true,
-        "baseUrl": ".",
+        "baseUrl": "./",
         "resolveJsonModule": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
