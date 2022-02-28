@@ -24,7 +24,7 @@ export async function requestApi(config: any): Promise<any> {
     }
     catch (ex) {
         if (ex.isAxiosError && ex.response) {
-            response.status = ex.response.statusCode;
+            response.status = ex.response.status;
             response.message = `An error occurred during the request: ${ex.response.status}`;
         }
         else {

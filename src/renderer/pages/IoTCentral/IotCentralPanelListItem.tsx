@@ -36,21 +36,24 @@ const IotCentralPanelListItem: FC<IIotCentralPanelListItemProps> = (props: IIotC
     return (
         <Item>
             <Item.Image
-                size="tiny"
+                style={{ width: '48px', height: 'auto' }}
                 src={'./assets/icons/64x64.png'}
             />
 
             <Item.Content>
                 <Item.Header>{appName}</Item.Header>
-                <Item.Meta>
-                    {appLocation}
-                </Item.Meta>
                 <Item.Extra>
-                    <Label>
+                    <Label size={'tiny'} basic color={'grey'}>
+                        Location:
+                        <Label.Detail>{appLocation}</Label.Detail>
+                    </Label>
+                    <br />
+                    <Label size={'tiny'} basic color={'grey'}>
                         Subdomain:
                         <Label.Detail>{appSubdomain}</Label.Detail>
                     </Label>
-                    <Label>
+                    <br />
+                    <Label size={'tiny'} basic color={'grey'}>
                         App Id:
                         <Label.Detail>{appId}</Label.Detail>
                     </Label>

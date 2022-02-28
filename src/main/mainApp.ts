@@ -10,8 +10,6 @@ import {
 import store, { StoreKeys } from './store';
 import logger from './logger';
 import MenuBuilder from './menu';
-import { join as pathJoin } from 'path';
-import { platform as osPlatform } from 'os';
 import { AuthProvider } from './authProvider/authProvider';
 import {
     Ipc_Log,
@@ -23,11 +21,16 @@ import {
     Ipc_GetAccount,
     Ipc_GetProfile,
     Ipc_RequestApi,
+    Ipc_GetIotcApps,
+    Ipc_OpenLink,
     IMsalConfig,
-    Ipc_OpenLink
+    IIotCentralApp
 } from './contextBridgeTypes';
 import { AccountInfo } from '@azure/msal-node';
 import { requestApi } from './utils';
+import { join as pathJoin } from 'path';
+import { platform as osPlatform } from 'os';
+import qs from 'qs';
 
 // Magic constants produced by Forge's webpack to locate the main entry and preload files.
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
@@ -38,6 +41,7 @@ const ModuleName = 'MainApp';
 export class MainApp {
     private mainWindow: BrowserWindow = null;
     private authProvider: AuthProvider = null;
+    private accessToken = '';
 
     constructor() {
         this.registerEventHandlers();
@@ -54,6 +58,9 @@ export class MainApp {
         menuBuilder.buildMenu();
 
         this.authProvider = new AuthProvider();
+
+        // initialize the auth provider from the cache for app startup
+        await this.authProvider.initialize();
 
         this.mainWindow.once('ready-to-show', () => {
             this.mainWindow.show();
@@ -115,7 +122,9 @@ export class MainApp {
             logger.log([ModuleName, 'info'], `ipcMain ${Ipc_SetMsalConfig} handler`);
 
             store.set(StoreKeys.clientId, msalConfig.clientId);
+            store.set(StoreKeys.clientSecret, msalConfig.clientSecret);
             store.set(StoreKeys.tenantId, msalConfig.tenantId);
+            store.set(StoreKeys.subscriptionId, msalConfig.subscriptionId);
             store.set(StoreKeys.redirectUri, msalConfig.redirectUri);
             store.set(StoreKeys.aadEndpointHost, msalConfig.aadEndpointHost);
             store.set(StoreKeys.appProtocolName, msalConfig.appProtocolName);
@@ -126,7 +135,9 @@ export class MainApp {
 
             return {
                 clientId: store.get(StoreKeys.clientId),
+                clientSecret: store.get(StoreKeys.clientSecret),
                 tenantId: store.get(StoreKeys.tenantId),
+                subscriptionId: store.get(StoreKeys.subscriptionId),
                 redirectUri: store.get(StoreKeys.redirectUri),
                 aadEndpointHost: store.get(StoreKeys.aadEndpointHost),
                 appProtocolName: store.get(StoreKeys.appProtocolName)
@@ -139,6 +150,8 @@ export class MainApp {
             // use a separate window for a pop-up login ui experience
             // const authWindow = this.createAuthWindow();
 
+            // re-initialize the auth provider from the cache
+            // in case the user has changed the Azure MSAL configuration
             await this.authProvider.initialize();
 
             const accountInfo = await this.authProvider.signin(this.mainWindow);
@@ -199,6 +212,21 @@ export class MainApp {
             return response;
         });
 
+        ipcMain.handle(Ipc_GetIotcApps, async (_event: IpcMainInvokeEvent): Promise<IIotCentralApp[]> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_GetIotcApps} handler`);
+
+            let iotcApps: IIotCentralApp[] = [];
+
+            try {
+                iotcApps = await this.getIotCentralApps();
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'error'], `Error during ${Ipc_RequestApi} handler: ${ex.message}`);
+            }
+
+            return iotcApps;
+        });
+
         ipcMain.handle(Ipc_OpenLink, async (_event: IpcMainInvokeEvent, url: string): Promise<void> => {
             logger.log([ModuleName, 'info'], `ipcMain ${Ipc_OpenLink} handler`);
 
@@ -222,4 +250,104 @@ export class MainApp {
 
     //     return window;
     // }
+
+    private async requestAzureResourceAccessToken(): Promise<string> {
+        let accessToken = '';
+
+        try {
+            const data = qs.stringify({
+                grant_type: 'client_credentials',
+                client_id: store.get(StoreKeys.clientId),
+                client_secret: store.get(StoreKeys.clientSecret),
+                resource: 'https://management.azure.com'
+            });
+
+            const config = {
+                method: 'post',
+                url: `https://login.microsoftonline.com/${store.get(StoreKeys.tenantId)}/oauth2/token`,
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                data
+            };
+
+            const response = await requestApi(config);
+            accessToken = response?.payload?.access_token || '';
+        }
+        catch (ex) {
+            logger.log([ModuleName, 'error'], `Error during ${Ipc_RequestApi} handler: ${ex.message}`);
+        }
+
+        return accessToken;
+    }
+
+    private async getIotCentralApps(): Promise<IIotCentralApp[]> {
+        logger.log([ModuleName, 'info'], `getIotCentralApps`);
+
+        let iotcApps: IIotCentralApp[] = [];
+
+        try {
+            const config = {
+                method: 'get',
+                url: `https://management.azure.com/subscriptions/${store.get(StoreKeys.subscriptionId)}/providers/Microsoft.IoTCentral/iotApps?api-version=2021-06-01`,
+                headers: {
+                    Authorization: `Bearer ${this.accessToken}`
+                }
+            };
+
+            const response = await this.makeRequestWithToken(config);
+            if (response) {
+                iotcApps = (response?.payload?.value || []).map((element: any) => {
+                    return {
+                        name: element.name,
+                        id: element.id,
+                        location: element.location,
+                        applicationId: element.properties.applicationId,
+                        displayName: element.properties.displayName,
+                        subdomain: element.properties.subdomain
+                    };
+                });
+            }
+            else {
+                logger.log([ModuleName, 'error'], `Error during getIotCentralApps`);
+            }
+        }
+        catch (ex) {
+            logger.log([ModuleName, 'error'], `Error during getIotCentralApps: ${ex.message}`);
+        }
+
+        return iotcApps;
+    }
+
+    private async makeRequestWithToken(config: any): Promise<any> {
+        logger.log([ModuleName, 'info'], `makeRequestWithToken`);
+
+        let response = {
+            status: 200,
+            message: 'SUCCESS',
+            payload: {}
+        };
+
+        try {
+            response = await requestApi(config);
+
+            if (response.status === 401) {
+                this.accessToken = await this.requestAzureResourceAccessToken();
+
+                config.headers = {
+                    ...config.headers,
+                    ...{
+                        Authorization: `Bearer ${this.accessToken}`
+                    }
+                };
+
+                response = await requestApi(config);
+            }
+        }
+        catch (ex) {
+            logger.log([ModuleName, 'error'], `Error during requestApi: ${ex.message}`);
+        }
+
+        return response;
+    }
 }

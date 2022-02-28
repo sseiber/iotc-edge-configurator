@@ -10,6 +10,7 @@ const {
     Ipc_GetAccount,
     Ipc_GetProfile,
     Ipc_RequestApi,
+    Ipc_GetIotcApps,
     Ipc_OpenLink
 } = require('./contextBridgeTypes.ts');
 
@@ -23,5 +24,6 @@ contextBridge.exposeInMainWorld('ipcApi', {
     [Ipc_GetAccount]: () => ipcRenderer.invoke(Ipc_GetAccount),
     [Ipc_GetProfile]: () => ipcRenderer.invoke(Ipc_GetProfile),
     [Ipc_RequestApi]: (config) => ipcRenderer.invoke(Ipc_RequestApi, config),
+    [Ipc_GetIotcApps]: () => ipcRenderer.invoke(Ipc_GetIotcApps),
     [Ipc_OpenLink]: (url) => ipcRenderer.invoke(Ipc_OpenLink, url)
 });

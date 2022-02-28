@@ -42,8 +42,11 @@ const App: FC = observer((props: any) => {
 
     const onClickSignin = async () => {
         const msalConfig = await sessionStore.getMsalConfig();
-        if (!msalConfig?.clientId
+        if (!msalConfig
+            || !msalConfig.clientId
+            || !msalConfig.clientSecret
             || !msalConfig.tenantId
+            || !msalConfig.subscriptionId
             || !msalConfig.redirectUri
             || !msalConfig.aadEndpointHost
             || !msalConfig.appProtocolName) {
@@ -62,7 +65,8 @@ const App: FC = observer((props: any) => {
         await sessionStore.signout();
     };
 
-    const logoMenuTitle = sessionStore.authenticationState === AuthenticationState.Authenticated ? `Home` : `Azure IoT Central`;
+    const logoMenuTitle = sessionStore.authenticationState === AuthenticationState.Authenticated ? `Apps` : `Azure IoT Central`;
+    const logoMenuLink = sessionStore.authenticationState === AuthenticationState.Authenticated ? '/iotcentral' : '/';
     const userNavItem = sessionStore.authenticationState === AuthenticationState.Authenticated
         ? (
             <Dropdown item trigger={(
@@ -113,7 +117,7 @@ const App: FC = observer((props: any) => {
         <ErrorBoundary>
             <InfoDialogServiceProvider>
                 <Menu fixed="top" inverted color="grey" style={{ padding: '0em 5em' }}>
-                    <Menu.Item as={Link} to={'/'} header>
+                    <Menu.Item as={Link} to={logoMenuLink} header>
                         <Image size="mini" src={`./assets/icons/64x64.png`} style={{ marginRight: '1.5em' }} />
                         {logoMenuTitle}
                     </Menu.Item>
@@ -126,8 +130,7 @@ const App: FC = observer((props: any) => {
                         <Routes>
                             <Route path="/" element={<HomePage />} />
                             <Route path="/azureconfig" element={<AzureConfigPage />} />
-                            <Route
-                                path="/iotcentral"
+                            <Route path="/iotcentral"
                                 element={
                                     <AuthenticatedRoute redirectTo="/">
                                         <IoTCentralPage />

@@ -14,7 +14,9 @@ const AzureConfigPage: FC = observer(() => {
     } = useStore();
 
     const [clientId, setClientId] = useState('');
+    const [clientSecret, setClientSecret] = useState('');
     const [tenantId, setTenantId] = useState('');
+    const [subscriptionId, setSubscriptionId] = useState('');
     const [redirectUri, setRedirectUri] = useState('');
     const [aadEndpointHost, setAadEndpointHost] = useState('');
     const [appProtocolName, setAppProtocolName] = useState('');
@@ -27,7 +29,9 @@ const AzureConfigPage: FC = observer(() => {
         }
 
         setClientId(msalConfig.clientId);
+        setClientSecret(msalConfig.clientSecret);
         setTenantId(msalConfig.tenantId);
+        setSubscriptionId(msalConfig.subscriptionId);
         setRedirectUri(msalConfig.redirectUri);
         setAadEndpointHost(msalConfig.aadEndpointHost);
         setAppProtocolName(msalConfig.appProtocolName);
@@ -38,8 +42,14 @@ const AzureConfigPage: FC = observer(() => {
             case 'clientId':
                 setClientId(e.target.value);
                 break;
+            case 'clientSecret':
+                setClientSecret(e.target.value);
+                break;
             case 'tenantId':
                 setTenantId(e.target.value);
+                break;
+            case 'subscriptionId':
+                setSubscriptionId(e.target.value);
                 break;
             case 'redirectUri':
                 setRedirectUri(e.target.value);
@@ -55,21 +65,25 @@ const AzureConfigPage: FC = observer(() => {
 
     const onOk = async () => {
         if (!clientId
+            || !clientSecret
             || !tenantId
+            || !subscriptionId
             || !redirectUri
             || !aadEndpointHost
             || !appProtocolName) {
             await showInfoDialog(infoDialogContext, {
                 catchOnCancel: true,
                 variant: 'info',
-                title: 'Azure resource configuration',
-                description: 'Missing required parameters...'
+                title: 'Azure MSAL configuration',
+                description: 'Some of the required parameters were missing or incorrectly formatted.'
             });
         }
         else {
             await sessionStore.setMsalConfig({
                 clientId,
+                clientSecret,
                 tenantId,
+                subscriptionId,
                 redirectUri,
                 aadEndpointHost,
                 appProtocolName
@@ -92,10 +106,18 @@ const AzureConfigPage: FC = observer(() => {
                     </Message>
                     <Form>
                         <Form.Field>
-                            <label>Client id (service principal client id/application id)</label>
+                            <label>Application (client) id:</label>
                             <Input
                                 value={clientId}
                                 onChange={(e) => onFieldChange(e, 'clientId')}
+                            />
+                        </Form.Field>
+
+                        <Form.Field>
+                            <label>Client secret:</label>
+                            <Input
+                                value={clientSecret}
+                                onChange={(e) => onFieldChange(e, 'clientSecret')}
                             />
                         </Form.Field>
 
@@ -104,6 +126,14 @@ const AzureConfigPage: FC = observer(() => {
                             <Input
                                 value={tenantId}
                                 onChange={(e) => onFieldChange(e, 'tenantId')}
+                            />
+                        </Form.Field>
+
+                        <Form.Field>
+                            <label>Subscription id:</label>
+                            <Input
+                                value={subscriptionId}
+                                onChange={(e) => onFieldChange(e, 'subscriptionId')}
                             />
                         </Form.Field>
 

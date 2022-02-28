@@ -1,6 +1,6 @@
 import React, { FC } from 'react';
 import { Grid, Segment, Header, Message, Item } from 'semantic-ui-react';
-import { IIotCentralApp } from '../../stores/iotCentral';
+import { IIotCentralApp } from '../../../main/contextBridgeTypes';
 import IotCentralPanelListItem from './IotCentralPanelListItem';
 
 interface IIotCentralPanelProps {
@@ -29,10 +29,10 @@ const IotCentralPanel: FC<IIotCentralPanelProps> = (props: IIotCentralPanelProps
                                                 return (
                                                     <IotCentralPanelListItem
                                                         key={index}
-                                                        appName={app.properties.displayName}
-                                                        appId={app.properties.applicationId}
+                                                        appName={app.displayName}
+                                                        appId={app.applicationId}
                                                         appLocation={app.location}
-                                                        appSubdomain={app.properties.subdomain}
+                                                        appSubdomain={app.subdomain}
                                                     />
                                                 );
                                             })
