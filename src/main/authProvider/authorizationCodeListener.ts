@@ -1,13 +1,13 @@
 export abstract class AuthorizationCodeListener {
-    private internalHostname: string;
+    private internalProtocol: string;
 
     // A string that represents the host name that should be listened on (i.e. 'msal' or '127.0.0.1')
-    constructor(hostname: string) {
-        this.internalHostname = hostname;
+    constructor(protocol: string) {
+        this.internalProtocol = protocol;
     }
 
-    public get hostname(): string {
-        return this.internalHostname;
+    public get protocol(): string {
+        return this.internalProtocol;
     }
 
     public abstract registerProtocolAndStartListening(): Promise<string>;

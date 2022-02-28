@@ -1,7 +1,7 @@
 import {
     BrowserWindow
 } from 'electron';
-// import { cachePlugin } from './cachePlugin';
+import { cachePlugin } from './cachePlugin';
 import { FileProtocolAuthorizationCodeListener } from './FileProtocolAuthorizationCodeListener';
 import store, { StoreKeys } from '../store';
 import {
@@ -18,18 +18,6 @@ import axios from 'axios';
 import logger from '../logger';
 
 const ModuleName = 'authProvider';
-
-export interface IMsalConfig {
-    clientId: string;
-    tenantId: string;
-    redirectUri: string;
-    aadEndpointHost: string;
-    graphEndpointHost: string;
-    graphMeEndpoint: string;
-    tokenCachePath: string;
-    tokenCacheName: string;
-    appProtocolName: string;
-}
 
 // Configuration object to be passed to MSAL instance on creation.
 // For a full list of MSAL Node configuration parameters, visit:
@@ -77,9 +65,9 @@ export class AuthProvider {
                     clientId: store.get(StoreKeys.clientId),
                     authority: `${store.get(StoreKeys.aadEndpointHost)}${store.get(StoreKeys.tenantId)}`
                 },
-                // cache: {
-                //     cachePlugin
-                // },
+                cache: {
+                    cachePlugin
+                },
                 system: {
                     loggerOptions: {
                         loggerCallback(_loglevel: LogLevel, message: string, _containsPii: boolean) {
@@ -110,9 +98,9 @@ export class AuthProvider {
     public async signin(authWindow: BrowserWindow): Promise<AccountInfo> {
         logger.log([ModuleName, 'info'], `signin`);
 
-        authWindow.webContents.on('will-redirect', (_event: Electron.Event, responseUrl: string) => {
-            logger.log([ModuleName, 'info'], `will-redirect url found: ${responseUrl}`);
-        });
+        // authWindow.webContents.on('will-redirect', (_event: Electron.Event, responseUrl: string) => {
+        //     logger.log([ModuleName, 'info'], `will-redirect url found: ${responseUrl}`);
+        // });
 
         const authResponse = await this.getTokenInteractive(authWindow, this.authCodeUrlParams);
         if (authResponse !== null) {
@@ -136,18 +124,18 @@ export class AuthProvider {
     }
 
     public async signout(): Promise<void> {
-        logger.log([ModuleName, 'info'], `signin`);
+        logger.log([ModuleName, 'info'], `signout`);
 
         try {
             if (this.account) {
                 await this.clientApplication.getTokenCache().removeAccount(this.account);
-
-                this.account = null;
             }
         }
         catch (ex) {
             logger.log([ModuleName, 'error'], `Error during signout: ${ex.message}`);
         }
+
+        this.account = null;
     }
 
     public async callEndpointWithToken(graphEndpointUrl: string, token: string): Promise<any> {
@@ -329,10 +317,10 @@ export class AuthProvider {
 
         // Set up custom file protocol to listen for redirect response
         const authCodeListener = new FileProtocolAuthorizationCodeListener(store.get(StoreKeys.appProtocolName));
-        const codePromise = authCodeListener.registerProtocolAndStartListening();
+
 
         await authWindow.loadURL(navigateUrl);
-
+        const codePromise = authCodeListener.registerProtocolAndStartListening();
         const code = await codePromise;
 
         authCodeListener.unregisterProtocol();

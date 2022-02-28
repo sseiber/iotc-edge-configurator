@@ -1,10 +1,13 @@
 import { makeAutoObservable, runInAction } from 'mobx';
-import { getUserSession } from '../apis/session';
 import {
+    Ipc_SetMsalConfig,
+    Ipc_GetMsalConfig,
     Ipc_Signin,
+    Ipc_Signout,
     Ipc_GetAccount,
-    Ipc_MsalConfig
+    IMsalConfig
 } from '../../main/contextBridgeTypes';
+import { AccountInfo } from '@azure/msal-node';
 
 export enum AuthenticationState {
     Authenticated = 'Authenticated',
@@ -18,30 +21,11 @@ export class SessionStore {
         makeAutoObservable(this);
     }
 
-    public authenticationState: AuthenticationState;
+    public authenticationState: AuthenticationState = AuthenticationState.Unauthenticated;
 
-    // AAD app registration credentials
-    public clientId = '4072cff6-8d4f-49e8-ac6c-fead2b684971';
-    public tenantId = '72f988bf-86f1-41af-91ab-2d7cd011db47';
-
-    // MSAL auth configuration
-    public redirectUri = 'msal4072cff6-8d4f-49e8-ac6c-fead2b684971://auth';
-
-    // AAD endpoints
-    public aadEndpointHost = 'https://login.microsoftonline.com/';
-    public graphEndpointHost = 'https://graph.microsoft.com/';
-
-    // Graph resources
-    public graphMeEndpoint = 'v1.0/me';
-
-    public tokenCachePath = '.webpack/data';
-    public tokenCacheName = 'cache.json';
-    public appProtocolName = 'msal4072cff6-8d4f-49e8-ac6c-fead2b684971';
-
-    public userId = '';
+    public username = '';
     public displayName = '';
     public email = '';
-    public authProvider = '';
     public redirectPath: string;
 
     public serviceError = '';
@@ -50,40 +34,36 @@ export class SessionStore {
         return process.env.NODE_ENV === 'production';
     }
 
-    public async setMsalConfig(): Promise<void> {
-        return window.ipcApi[Ipc_MsalConfig]({
-            clientId: this.clientId,
-            tenantId: this.tenantId,
-            redirectUri: this.redirectUri,
-            aadEndpointHost: this.aadEndpointHost,
-            graphEndpointHost: this.graphEndpointHost,
-            graphMeEndpoint: this.graphMeEndpoint,
-            tokenCachePath: this.tokenCachePath,
-            tokenCacheName: this.tokenCacheName,
-            appProtocolName: this.appProtocolName
-        });
+    public async openConfiguration(): Promise<any> {
+        return window.ipcApi[Ipc_GetMsalConfig]();
     }
 
-    public async signin(): Promise<void> {
+    public async setMsalConfig(msalConfig: IMsalConfig): Promise<void> {
+        return window.ipcApi[Ipc_SetMsalConfig](msalConfig);
+    }
+
+    public async getMsalConfig(): Promise<IMsalConfig> {
+        return window.ipcApi[Ipc_GetMsalConfig]();
+    }
+
+    public async signin(redirectPath = '/'): Promise<void> {
         runInAction(() => {
             this.authenticationState = AuthenticationState.Authenticating;
         });
 
         try {
-            const response: any = await window.ipcApi[Ipc_Signin]();
-            if (response?.status === undefined) {
+            const account: AccountInfo = await window.ipcApi[Ipc_Signin](redirectPath);
+            if (account) {
                 runInAction(() => {
                     this.authenticationState = AuthenticationState.Authenticated;
-                    this.userId = response.data.userId;
-                    this.displayName = response.data.displayName;
-                    this.email = response.data.email;
-                    this.authProvider = response.data.authProvider;
+                    this.username = account.username;
+                    this.displayName = account.name || 'Unknown';
                 });
             }
             else {
-                runInAction(() => {
-                    this.authenticationState = AuthenticationState.CouldNotAuthenticate;
-                });
+                this.authenticationState = AuthenticationState.CouldNotAuthenticate;
+
+                this.serviceError = `An error occurred while attempting to access the currenet user account`;
             }
         }
         catch (ex) {
@@ -93,20 +73,31 @@ export class SessionStore {
         }
     }
 
+    public async signout(): Promise<void> {
+        try {
+            await window.ipcApi[Ipc_Signout]();
+            runInAction(() => {
+                this.username = '';
+                this.displayName = '';
+            });
+        }
+        finally {
+            this.authenticationState = AuthenticationState.Unauthenticated;
+        }
+    }
+
     public async getUserProfile(): Promise<void> {
         runInAction(() => {
             this.authenticationState = AuthenticationState.Authenticating;
         });
 
         try {
-            const response: any = await window.ipcApi[Ipc_Signin]();
+            const response: any = await window.ipcApi[Ipc_Signin]('');
             if (response?.status === undefined) {
                 runInAction(() => {
                     this.authenticationState = AuthenticationState.Authenticated;
-                    this.userId = response.data.userId;
+                    this.username = response.data.userId;
                     this.displayName = response.data.displayName;
-                    this.email = response.data.email;
-                    this.authProvider = response.data.authProvider;
                 });
             }
             else {
@@ -124,38 +115,27 @@ export class SessionStore {
 
     public async getUserSessionInfo(_userId: string): Promise<void> {
         try {
-            // @ts-ignore
-            const userAccount = await window.ipcApi[Ipc_GetAccount]();
-
-            const response = await getUserSession();
-            const responsePayload = response.payload;
-
-            if (responsePayload && responsePayload.status === 200) {
+            const account = await window.ipcApi[Ipc_GetAccount]();
+            if (account) {
                 runInAction(() => {
                     this.authenticationState = AuthenticationState.Authenticated;
-                    this.userId = response.payload.userId;
-                    this.displayName = response.payload.displayName;
-                    this.email = response.payload.email;
-                    this.authProvider = response.payload.authProvider;
+                    this.username = account.username;
+                    this.displayName = account?.name || 'Unknown';
                 });
             }
             else {
-                runInAction(() => {
-                    this.serviceError = responsePayload.statusMessage || response.message;
-                });
-            }
+                this.authenticationState = AuthenticationState.CouldNotAuthenticate;
 
-            this.authenticationState = AuthenticationState.CouldNotAuthenticate;
+                this.serviceError = `An error occurred while attempting to access the currenet user account`;
+            }
         }
         catch (ex) {
             runInAction(() => {
                 this.authenticationState = AuthenticationState.CouldNotAuthenticate;
-                this.userId = '';
+                this.username = '';
                 this.displayName = '';
-                this.email = '';
-                this.authProvider = '';
 
-                this.serviceError = `An error occurred while attempting to get the currenet user session: ${ex.message}`;
+                this.serviceError = `An error occurred while attempting to access the currenet user account: ${ex.message}`;
             });
         }
     }

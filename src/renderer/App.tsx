@@ -1,17 +1,22 @@
 import React, { FC } from 'react';
-import { Routes, Route, useLocation, useNavigate, Link, Navigate } from 'react-router-dom';
+import { Routes, Route, useParams, useLocation, useNavigate, Link, Navigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { useAsyncEffect } from 'use-async-effect';
 import { Menu, Grid, Image, Icon, Dropdown } from 'semantic-ui-react';
-import { parse as qsParse } from 'query-string';
 import { useStore } from './stores/store';
-// import { AuthenticationState } from './stores/session';
-// import AuthenticatedRoute from './components/AuthenticatedRoute';
-import HomePage from './pages/HomePage';
-import { ErrorBoundary } from './components/ErrorBoundary';
 import { InfoDialogServiceProvider } from './components/InfoDialogContext';
+import { AuthenticationState } from './stores/session';
+import AuthenticatedRoute from './components/AuthenticatedRoute';
+import HomePage from './pages/HomePage';
+import AzureConfigPage from './pages/AzureConfigPage';
+import IoTCentralPage from './pages/IoTCentral/IoTCentralPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { log } from './utils';
+
+const ModuleName = 'App';
 
 const App: FC = observer((props: any) => {
+    const params = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const {
@@ -25,42 +30,80 @@ const App: FC = observer((props: any) => {
             return;
         }
 
-        let redirectPath = location.pathname;
+        if (sessionStore.authenticationState === AuthenticationState.Authenticated) {
+            log([ModuleName, 'info'], `Would redirect to: ${params.redirectpath || location.pathname}`);
 
-        if (location.search) {
-            const query = qsParse(location.search);
-
-            redirectPath = query.redirectPath.toString() || `${redirectPath}${location.search}`;
+            navigate('/iotcentral');
         }
-
-        navigate(redirectPath);
+        else {
+            sessionStore.redirectPath = location.pathname;
+        }
     }, []);
 
-    let userNavItem = (
-        <Menu.Item href="/">
-            <Icon name="sign out alternate" />
-            <span>&nbsp;&nbsp;Sign out</span>
-        </Menu.Item>
-    );
+    const onClickSignin = async () => {
+        const msalConfig = await sessionStore.getMsalConfig();
+        if (!msalConfig?.clientId
+            || !msalConfig.tenantId
+            || !msalConfig.redirectUri
+            || !msalConfig.aadEndpointHost
+            || !msalConfig.appProtocolName) {
+            navigate('/azureconfig');
+        }
+        else {
+            void sessionStore.signin('/iotcentral');
+        }
+    };
 
-    if (sessionStore.displayName) {
-        const trigger = (
-            <span>
-                <Icon name={'user'} /> {sessionStore.displayName}
-            </span>
-        );
+    const onEditAzureConfig = () => {
+        navigate('/azureconfig');
+    };
 
-        userNavItem = (
-            <Dropdown item trigger={trigger}>
+    const onClickSignout = async () => {
+        await sessionStore.signout();
+    };
+
+    const logoMenuTitle = sessionStore.authenticationState === AuthenticationState.Authenticated ? `Home` : `Azure IoT Central`;
+    const userNavItem = sessionStore.authenticationState === AuthenticationState.Authenticated
+        ? (
+            <Dropdown item trigger={(
+                <span>
+                    <Icon name={'user'} /> {sessionStore.displayName}
+                </span>
+            )}>
                 <Dropdown.Menu>
-                    <Dropdown.Item href="/">
+                    < Dropdown.Item onClick={onEditAzureConfig}>
+                        <Icon name="edit" />
+                        <span>&nbsp;&nbsp;Edit Azure config</span>
+                    </Dropdown.Item>
+                    < Dropdown.Item onClick={onClickSignout}>
                         <Icon name="sign out alternate" />
                         <span>&nbsp;&nbsp;Sign out</span>
                     </Dropdown.Item>
                 </Dropdown.Menu>
             </Dropdown >
+        )
+        : (
+            // <Menu.Item onClick={onClickSignin}>
+            //     <Icon name="sign in alternate" />
+            //     <span>&nbsp;&nbsp;Sign in</span>
+            // </Menu.Item>
+            <Dropdown item trigger={(
+                <span>
+                    <Icon name={'sign in alternate'} /> Action
+                </span>
+            )}>
+                <Dropdown.Menu>
+                    < Dropdown.Item onClick={onEditAzureConfig}>
+                        <Icon name="edit" />
+                        <span>&nbsp;&nbsp;Edit Azure config</span>
+                    </Dropdown.Item>
+                    < Dropdown.Item onClick={onClickSignin}>
+                        <Icon name="sign in alternate" />
+                        <span>&nbsp;&nbsp;Sign in</span>
+                    </Dropdown.Item>
+                </Dropdown.Menu>
+            </Dropdown>
         );
-    }
 
     const {
         children
@@ -70,9 +113,9 @@ const App: FC = observer((props: any) => {
         <ErrorBoundary>
             <InfoDialogServiceProvider>
                 <Menu fixed="top" inverted color="grey" style={{ padding: '0em 5em' }}>
-                    <Menu.Item as={Link} to={`/`} header>
+                    <Menu.Item as={Link} to={'/'} header>
                         <Image size="mini" src={`./assets/icons/64x64.png`} style={{ marginRight: '1.5em' }} />
-                        Azure IoT Central Solution Builder
+                        {logoMenuTitle}
                     </Menu.Item>
                     <Menu.Menu position="right">
                         {userNavItem}
@@ -82,6 +125,15 @@ const App: FC = observer((props: any) => {
                     <Grid.Column>
                         <Routes>
                             <Route path="/" element={<HomePage />} />
+                            <Route path="/azureconfig" element={<AzureConfigPage />} />
+                            <Route
+                                path="/iotcentral"
+                                element={
+                                    <AuthenticatedRoute redirectTo="/">
+                                        <IoTCentralPage />
+                                    </AuthenticatedRoute>
+                                }
+                            />
                             <Route path="*" element={<Navigate to="/" replace />} />
                             {children}
                         </Routes>

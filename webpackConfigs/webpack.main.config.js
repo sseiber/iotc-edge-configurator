@@ -14,5 +14,8 @@ module.exports = {
     },
     optimization: {
         minimize: !devConfig
+    },
+    performance: {
+        maxAssetSize: 650000
     }
 };

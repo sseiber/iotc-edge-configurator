@@ -26,4 +26,10 @@ module.exports = {
     resolve: {
         extensions: ['.js', '.ts', '.jsx', '.tsx', '.css'],
     },
+    optimization: {
+        minimize: !devConfig
+    },
+    performance: {
+        maxAssetSize: 650000
+    }
 };

@@ -17,7 +17,7 @@ if (require('electron-squirrel-startup')) {
 
 // app.setAsDefaultProtocolClient(appProtocol);
 
-const mainApp = new MainApp(app);
+const mainApp = new MainApp();
 
 app.on('open-url', (ev: Event, appUrl: string) => {
     ev.preventDefault();

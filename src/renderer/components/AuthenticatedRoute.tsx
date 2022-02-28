@@ -1,33 +1,25 @@
 import React, { FC } from 'react';
-import { Route, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { useStore } from '../stores/store';
 import { AuthenticationState } from '../stores/session';
 
 interface IAuthenticatedRoute {
-    path: string;
-    element: React.FC;
+    children: JSX.Element;
+    redirectTo: string;
 }
 
 const AuthenticatedRoute: FC<IAuthenticatedRoute> = observer((props: IAuthenticatedRoute) => {
     const {
-        path,
-        element
+        children,
+        redirectTo
     } = props;
 
     const {
         sessionStore
     } = useStore();
 
-    if (sessionStore.authenticationState === AuthenticationState.Authenticated) {
-        return (
-            <Route path={path} element={element} />
-        );
-    }
-
-    return (
-        <Route path="*" element={<Navigate to="/" replace />} />
-    );
+    return sessionStore.authenticationState === AuthenticationState.Authenticated ? children : <Navigate to={redirectTo} />;
 });
 
 export default AuthenticatedRoute;

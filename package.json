@@ -7,6 +7,7 @@
     "scripts": {
         "start": "cross-env NODE_ENV=development electron-forge start",
         "package": "cross-env NODE_ENV=production electron-forge package",
+        "make-debug": "cross-env NODE_ENV=development electron-forge make",
         "make": "cross-env NODE_ENV=production electron-forge make",
         "publish": "cross-env NODE_ENV=production electron-forge publish",
         "eslint": "eslint -c .eslintrc.json --ext .ts,.tsx,.js ./src"
@@ -63,6 +64,7 @@
         "fs-extra": "^10.0.0",
         "mobx": "^6.4.0",
         "mobx-react-lite": "^3.3.0",
+        "qs": "^6.10.3",
         "query-string": "^7.1.1",
         "react": "^17.0.2",
         "react-dom": "^17.0.2",

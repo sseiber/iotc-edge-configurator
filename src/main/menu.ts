@@ -158,25 +158,13 @@ export default class MenuBuilder {
                 {
                     label: 'Learn More',
                     click() {
-                        void shell.openExternal('https://electronjs.org');
+                        void shell.openExternal('https://azureiotcentral.com');
                     }
                 },
                 {
                     label: 'Documentation',
                     click() {
-                        void shell.openExternal('https://github.com/electron/electron/tree/main/docs#readme');
-                    }
-                },
-                {
-                    label: 'Community Discussions',
-                    click() {
-                        void shell.openExternal('https://www.electronjs.org/community');
-                    }
-                },
-                {
-                    label: 'Search Issues',
-                    click() {
-                        void shell.openExternal('https://github.com/electron/electron/issues');
+                        void shell.openExternal('https://github.com/iot-for-all');
                     }
                 }
             ]
@@ -254,25 +242,13 @@ export default class MenuBuilder {
                     {
                         label: 'Learn More',
                         click() {
-                            void shell.openExternal('https://electronjs.org');
+                            void shell.openExternal('https://azureiotcentral.com');
                         }
                     },
                     {
                         label: 'Documentation',
                         click() {
-                            void shell.openExternal('https://github.com/electron/electron/tree/main/docs#readme');
-                        }
-                    },
-                    {
-                        label: 'Community Discussions',
-                        click() {
-                            void shell.openExternal('https://www.electronjs.org/community');
-                        }
-                    },
-                    {
-                        label: 'Search Issues',
-                        click() {
-                            void shell.openExternal('https://github.com/electron/electron/issues');
+                            void shell.openExternal('https://github.com/iot-for-all');
                         }
                     }
                 ]

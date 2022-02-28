@@ -19,23 +19,27 @@ export class FileProtocolAuthorizationCodeListener extends AuthorizationCodeList
     // response.
     public registerProtocolAndStartListening(): Promise<string> {
         const codePromise = new Promise<string>((resolve, reject) => {
-            protocol.registerFileProtocol(this.hostname, (req, callback): void => {
+            protocol.registerFileProtocol(this.protocol, (req, callback): void => {
                 const requestUrl = new URL(req.url);
                 const authCode = requestUrl.searchParams.get('code');
 
                 if (authCode) {
+                    logger.log([ModuleName, 'info'], `returned from registerFileProtocol with authorization code`);
+
                     // exlicit return on callback below
                     resolve(authCode);
                 }
                 else {
-                    const message = `${ModuleName} error: the returned URL did not include an authoriztion code`;
+                    const message = `${ModuleName} Error: returned from registerFileProtocol but url did not include an authoriztion code`;
                     logger.log([ModuleName, 'error'], message);
 
                     // exlicit return on callback below
                     reject(new Error(message));
                 }
 
-                return callback(path.normalize(`${__dirname}/${requestUrl.pathname}`));
+                return callback({
+                    path: path.normalize(`${__dirname}/${requestUrl.pathname}`)
+                });
             });
         });
 
@@ -43,6 +47,6 @@ export class FileProtocolAuthorizationCodeListener extends AuthorizationCodeList
     }
 
     public unregisterProtocol(): void {
-        protocol.unregisterProtocol(this.hostname);
+        protocol.unregisterProtocol(this.protocol);
     }
 }
