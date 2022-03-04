@@ -5,6 +5,7 @@ import { useAsyncEffect } from 'use-async-effect';
 import { Button, Form, Grid, Input, Message } from 'semantic-ui-react';
 import { useStore } from '../stores/store';
 import { useInfoDialog, showInfoDialog } from '../components/InfoDialogContext';
+import { AppNavigationPaths } from '../../main/contextBridgeTypes';
 
 const AzureConfigPage: FC = observer(() => {
     const navigate = useNavigate();
@@ -18,7 +19,7 @@ const AzureConfigPage: FC = observer(() => {
     const [tenantId, setTenantId] = useState('');
     const [subscriptionId, setSubscriptionId] = useState('');
     const [redirectUri, setRedirectUri] = useState('');
-    const [aadEndpointHost, setAadEndpointHost] = useState('');
+    const [aadAuthority, setAadAuthority] = useState('');
     const [appProtocolName, setAppProtocolName] = useState('');
 
     useAsyncEffect(async isMounted => {
@@ -33,7 +34,7 @@ const AzureConfigPage: FC = observer(() => {
         setTenantId(msalConfig.tenantId);
         setSubscriptionId(msalConfig.subscriptionId);
         setRedirectUri(msalConfig.redirectUri);
-        setAadEndpointHost(msalConfig.aadEndpointHost);
+        setAadAuthority(msalConfig.aadAuthority);
         setAppProtocolName(msalConfig.appProtocolName);
     }, []);
 
@@ -54,8 +55,8 @@ const AzureConfigPage: FC = observer(() => {
             case 'redirectUri':
                 setRedirectUri(e.target.value);
                 break;
-            case 'aadEndpointHost':
-                setAadEndpointHost(e.target.value);
+            case 'aadAuthority':
+                setAadAuthority(e.target.value);
                 break;
             case 'appProtocolName':
                 setAppProtocolName(e.target.value);
@@ -65,11 +66,10 @@ const AzureConfigPage: FC = observer(() => {
 
     const onOk = async () => {
         if (!clientId
-            || !clientSecret
             || !tenantId
             || !subscriptionId
             || !redirectUri
-            || !aadEndpointHost
+            || !aadAuthority
             || !appProtocolName) {
             await showInfoDialog(infoDialogContext, {
                 catchOnCancel: true,
@@ -85,16 +85,16 @@ const AzureConfigPage: FC = observer(() => {
                 tenantId,
                 subscriptionId,
                 redirectUri,
-                aadEndpointHost,
+                aadAuthority,
                 appProtocolName
             });
 
-            void sessionStore.signin('/iotcentral');
+            void sessionStore.signin(AppNavigationPaths.IoTCentral);
         }
     };
 
     const onCancel = () => {
-        navigate('/');
+        navigate(AppNavigationPaths.Root);
     };
 
     return (
@@ -146,10 +146,10 @@ const AzureConfigPage: FC = observer(() => {
                         </Form.Field>
 
                         <Form.Field>
-                            <label>AAD endpoint host (cloud instance id):</label>
+                            <label>AAD authority endpoint:</label>
                             <Input
-                                value={aadEndpointHost}
-                                onChange={(e) => onFieldChange(e, 'aadEndpointHost')}
+                                value={aadAuthority}
+                                onChange={(e) => onFieldChange(e, 'aadAuthority')}
                             />
                         </Form.Field>
 

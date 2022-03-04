@@ -23,14 +23,12 @@ export class ErrorBoundary extends Component<IErrorBoundaryProps, IErrorBoundary
         };
     }
 
-    // @ts-ignore
-    public static getDerivedStateFromError(error: Error): any {
+    public static getDerivedStateFromError(_error: Error): any {
         return {
             hasError: true
         };
     }
 
-    // @ts-ignore
     public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
         // You can also log the error to an error reporting service
         /* eslint-disable no-console */

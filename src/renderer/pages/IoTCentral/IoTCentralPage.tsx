@@ -45,7 +45,6 @@ const IoTCentralPage: FC = observer(() => {
                 <Grid.Column>
                     <Message size="huge">
                         <Message.Header>Azure IoT Central Solution Builder</Message.Header>
-                        <p>IoT Central Companion App</p>
                     </Message>
                     <Dimmer active={loading} inverted>
                         <Loader>Pending...</Loader>

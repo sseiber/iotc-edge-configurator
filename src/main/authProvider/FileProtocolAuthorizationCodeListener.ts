@@ -17,7 +17,11 @@ export class FileProtocolAuthorizationCodeListener extends AuthorizationCodeList
     // parameter on the supplied request url so that clients can wait on this. The supplied
     // 'callback' in registerFileProtocol's handler will also be called to supply the handler's
     // response.
-    public registerProtocolAndStartListening(): Promise<string> {
+    public async registerProtocolAndStartListening(timeout: number): Promise<string> {
+        const timeoutPromise = new Promise<string>((_resolve, reject) => {
+            setTimeout(reject, timeout, new Error('The signin process timed out while waiting for an authorization code'));
+        });
+
         const codePromise = new Promise<string>((resolve, reject) => {
             protocol.registerFileProtocol(this.protocol, (req, callback): void => {
                 const requestUrl = new URL(req.url);
@@ -43,7 +47,7 @@ export class FileProtocolAuthorizationCodeListener extends AuthorizationCodeList
             });
         });
 
-        return codePromise;
+        return Promise.race([timeoutPromise, codePromise]);
     }
 
     public unregisterProtocol(): void {

@@ -2,11 +2,10 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import {
     Ipc_OpenConfiguration,
     Ipc_GetIotcApps,
-    IIotCentralApp
+    Ipc_GetIotcDevices,
+    IIotCentralApp,
+    IIotCentralDevice
 } from '../../main/contextBridgeTypes';
-
-// @ts-ignore
-const genericError = `Sorry, an unknown error occurred, try again after rebooting your device`;
 
 export class IotCentralStore {
     constructor() {
@@ -15,7 +14,9 @@ export class IotCentralStore {
 
     public azureResourceAccessToken = '';
     public configuration: any = {};
+    public waitingOnApiCall = false;
     public iotcApps: IIotCentralApp[] = [];
+    public iotcDevices: IIotCentralDevice[] = [];
 
     public serviceError = '';
 
@@ -27,6 +28,10 @@ export class IotCentralStore {
     }
 
     public async getIotCentralApps(): Promise<void> {
+        runInAction(() => {
+            this.waitingOnApiCall = true;
+        });
+
         try {
             const response = await window.ipcApi[Ipc_GetIotcApps]();
             if (response) {
@@ -38,6 +43,61 @@ export class IotCentralStore {
         catch (ex) {
             runInAction(() => {
                 this.serviceError = `An error occurred while attempting to get the list of IoT Central apps: ${ex.message}`;
+            });
+        }
+        finally {
+            runInAction(() => {
+                this.waitingOnApiCall = false;
+            });
+        }
+    }
+
+    public async getIotCentralDevices(appSubdomain: string): Promise<void> {
+        runInAction(() => {
+            this.waitingOnApiCall = true;
+        });
+
+        try {
+            const response = await window.ipcApi[Ipc_GetIotcDevices](appSubdomain);
+            if (response) {
+                runInAction(() => {
+                    this.iotcDevices = response;
+                });
+            }
+        }
+        catch (ex) {
+            runInAction(() => {
+                this.serviceError = `An error occurred while attempting to get the list of IoT Central apps: ${ex.message}`;
+            });
+        }
+        finally {
+            runInAction(() => {
+                this.waitingOnApiCall = false;
+            });
+        }
+    }
+
+    public async callIoTCentralDirectMethod(appSubdomain: string): Promise<void> {
+        runInAction(() => {
+            this.waitingOnApiCall = true;
+        });
+
+        try {
+            const response = await window.ipcApi[Ipc_GetIotcDevices](appSubdomain);
+            if (response) {
+                runInAction(() => {
+                    this.iotcDevices = response;
+                });
+            }
+        }
+        catch (ex) {
+            runInAction(() => {
+                this.serviceError = `An error occurred while attempting to get the list of IoT Central apps: ${ex.message}`;
+            });
+        }
+        finally {
+            runInAction(() => {
+                this.waitingOnApiCall = false;
             });
         }
     }

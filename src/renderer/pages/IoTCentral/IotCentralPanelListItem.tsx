@@ -2,7 +2,8 @@ import React, { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Item, Label } from 'semantic-ui-react';
 import {
-    Ipc_OpenLink
+    Ipc_OpenLink,
+    AppNavigationPaths
 } from '../../../main/contextBridgeTypes';
 
 interface IIotCentralPanelListItemProps {
@@ -12,7 +13,6 @@ interface IIotCentralPanelListItemProps {
     appSubdomain: string;
 }
 const IotCentralPanelListItem: FC<IIotCentralPanelListItemProps> = (props: IIotCentralPanelListItemProps) => {
-    const navigate = useNavigate();
     const {
         appName,
         appId,
@@ -20,15 +20,19 @@ const IotCentralPanelListItem: FC<IIotCentralPanelListItemProps> = (props: IIotC
         appSubdomain
     } = props;
 
+    const navigate = useNavigate();
+
     const openBrowser = (subdomain: string) => {
         void window.ipcApi[Ipc_OpenLink](`https://${subdomain}.azureiotcentral.com/`);
     };
 
     const navigateToIotcAppPage = () => {
-        navigate('/iotcapppage', {
+        navigate(AppNavigationPaths.IIoTAdapter, {
             state: {
                 appId,
-                appName
+                appName,
+                appLocation,
+                appSubdomain
             }
         });
     };
@@ -44,8 +48,8 @@ const IotCentralPanelListItem: FC<IIotCentralPanelListItemProps> = (props: IIotC
                 <Item.Header>{appName}</Item.Header>
                 <Item.Extra>
                     <Label size={'tiny'} basic color={'grey'}>
-                        Location:
-                        <Label.Detail>{appLocation}</Label.Detail>
+                        Id:
+                        <Label.Detail>{appId}</Label.Detail>
                     </Label>
                     <br />
                     <Label size={'tiny'} basic color={'grey'}>
@@ -54,8 +58,8 @@ const IotCentralPanelListItem: FC<IIotCentralPanelListItemProps> = (props: IIotC
                     </Label>
                     <br />
                     <Label size={'tiny'} basic color={'grey'}>
-                        App Id:
-                        <Label.Detail>{appId}</Label.Detail>
+                        Location:
+                        <Label.Detail>{appLocation}</Label.Detail>
                     </Label>
                     <Button primary floated="right" size="small" onClick={() => openBrowser(appSubdomain)}>Go to app</Button>
                     <Button primary floated="right" size="small" onClick={navigateToIotcAppPage}>Manage app</Button>

@@ -4,9 +4,6 @@ import {
     iiotAdapterRequest
 } from '../apis/iiotAdapter';
 
-// @ts-ignore
-const genericError = `Sorry, an unknown error occurred, try again after rebooting your device`;
-
 export enum SecurityMode {
     'Lowest',
     'Best'

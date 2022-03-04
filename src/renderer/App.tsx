@@ -1,15 +1,18 @@
 import React, { FC } from 'react';
 import { Routes, Route, useParams, useLocation, useNavigate, Link, Navigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
-import { useAsyncEffect } from 'use-async-effect';
 import { Menu, Grid, Image, Icon, Dropdown } from 'semantic-ui-react';
+import { useAsyncEffect } from 'use-async-effect';
 import { useStore } from './stores/store';
 import { InfoDialogServiceProvider } from './components/InfoDialogContext';
+import { AppNavigationPaths } from '../main/contextBridgeTypes';
 import { AuthenticationState } from './stores/session';
 import AuthenticatedRoute from './components/AuthenticatedRoute';
 import HomePage from './pages/HomePage';
 import AzureConfigPage from './pages/AzureConfigPage';
 import IoTCentralPage from './pages/IoTCentral/IoTCentralPage';
+import IIoTAdapterPage from './pages/IIoTAdapter/IIoTAdapterPage';
+import ConfigAdapterPage from './pages/ConfigAdapter/ConfigAdapterPage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { log } from './utils';
 
@@ -33,7 +36,7 @@ const App: FC = observer((props: any) => {
         if (sessionStore.authenticationState === AuthenticationState.Authenticated) {
             log([ModuleName, 'info'], `Would redirect to: ${params.redirectpath || location.pathname}`);
 
-            navigate('/iotcentral');
+            navigate(AppNavigationPaths.IoTCentral);
         }
         else {
             sessionStore.redirectPath = location.pathname;
@@ -44,29 +47,28 @@ const App: FC = observer((props: any) => {
         const msalConfig = await sessionStore.getMsalConfig();
         if (!msalConfig
             || !msalConfig.clientId
-            || !msalConfig.clientSecret
             || !msalConfig.tenantId
             || !msalConfig.subscriptionId
             || !msalConfig.redirectUri
-            || !msalConfig.aadEndpointHost
+            || !msalConfig.aadAuthority
             || !msalConfig.appProtocolName) {
-            navigate('/azureconfig');
+            navigate(AppNavigationPaths.AzureConfig);
         }
         else {
-            void sessionStore.signin('/iotcentral');
+            void sessionStore.signin(AppNavigationPaths.IoTCentral);
         }
     };
 
     const onEditAzureConfig = () => {
-        navigate('/azureconfig');
+        navigate(AppNavigationPaths.AzureConfig);
     };
 
     const onClickSignout = async () => {
         await sessionStore.signout();
     };
 
-    const logoMenuTitle = sessionStore.authenticationState === AuthenticationState.Authenticated ? `Apps` : `Azure IoT Central`;
-    const logoMenuLink = sessionStore.authenticationState === AuthenticationState.Authenticated ? '/iotcentral' : '/';
+    const logoMenuTitle = sessionStore.authenticationState === AuthenticationState.Authenticated ? `IoT Central apps` : `Azure IoT Central`;
+    const logoMenuLink = sessionStore.authenticationState === AuthenticationState.Authenticated ? AppNavigationPaths.IoTCentral : AppNavigationPaths.Root;
     const userNavItem = sessionStore.authenticationState === AuthenticationState.Authenticated
         ? (
             <Dropdown item trigger={(
@@ -128,16 +130,30 @@ const App: FC = observer((props: any) => {
                 <Grid>
                     <Grid.Column>
                         <Routes>
-                            <Route path="/" element={<HomePage />} />
-                            <Route path="/azureconfig" element={<AzureConfigPage />} />
-                            <Route path="/iotcentral"
+                            <Route path={AppNavigationPaths.Root} element={<HomePage />} />
+                            <Route path={AppNavigationPaths.AzureConfig} element={<AzureConfigPage />} />
+                            <Route path={AppNavigationPaths.IoTCentral}
                                 element={
-                                    <AuthenticatedRoute redirectTo="/">
+                                    <AuthenticatedRoute redirectTo={AppNavigationPaths.Root}>
                                         <IoTCentralPage />
                                     </AuthenticatedRoute>
                                 }
                             />
-                            <Route path="*" element={<Navigate to="/" replace />} />
+                            <Route path={AppNavigationPaths.IIoTAdapter}
+                                element={
+                                    <AuthenticatedRoute redirectTo={AppNavigationPaths.Root}>
+                                        <IIoTAdapterPage />
+                                    </AuthenticatedRoute>
+                                }
+                            />
+                            <Route path={AppNavigationPaths.ConfigAdapter}
+                                element={
+                                    <AuthenticatedRoute redirectTo={AppNavigationPaths.Root}>
+                                        <ConfigAdapterPage />
+                                    </AuthenticatedRoute>
+                                }
+                            />
+                            <Route path="*" element={<Navigate to={AppNavigationPaths.Root} replace />} />
                             {children}
                         </Routes>
                     </Grid.Column>

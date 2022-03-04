@@ -10,6 +10,6 @@ export abstract class AuthorizationCodeListener {
         return this.internalProtocol;
     }
 
-    public abstract registerProtocolAndStartListening(): Promise<string>;
+    public abstract registerProtocolAndStartListening(timeout: number): Promise<string>;
     public abstract unregisterProtocol(): void;
 }

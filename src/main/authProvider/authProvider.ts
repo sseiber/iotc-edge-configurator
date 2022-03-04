@@ -10,14 +10,19 @@ import {
     CryptoProvider,
     AccountInfo,
     AuthenticationResult,
-    AuthorizationUrlRequest,
-    AuthorizationCodeRequest,
     SilentFlowRequest
 } from '@azure/msal-node';
 import axios from 'axios';
 import logger from '../logger';
 
 const ModuleName = 'authProvider';
+
+const AuthCodeTimeout = 1000 * 30;
+
+export const UserProfileScope = 'User.Read';
+export const AzureManagementScope = 'https://management.azure.com/.default';
+export const IoTCentralApiScope = 'https://apps.azureiotcentral.com/.default';
+
 
 // Configuration object to be passed to MSAL instance on creation.
 // For a full list of MSAL Node configuration parameters, visit:
@@ -42,14 +47,12 @@ const ModuleName = 'authProvider';
 // };
 
 export class AuthProvider {
+    private authWindow: BrowserWindow;
     private clientApplication: PublicClientApplication;
     private account: AccountInfo;
-    private authCodeUrlParams: AuthorizationUrlRequest;
-    private authCodeRequest: AuthorizationCodeRequest;
-    private silentProfileRequest: SilentFlowRequest;
 
-    public get currentAccount(): AccountInfo {
-        return this.account;
+    constructor(authWindow: BrowserWindow) {
+        this.authWindow = authWindow;
     }
 
     public async initialize(): Promise<boolean> {
@@ -63,7 +66,7 @@ export class AuthProvider {
             this.clientApplication = new PublicClientApplication({
                 auth: {
                     clientId: store.get(StoreKeys.clientId),
-                    authority: `${store.get(StoreKeys.aadEndpointHost)}${store.get(StoreKeys.tenantId)}`
+                    authority: store.get(StoreKeys.aadAuthority)
                 },
                 cache: {
                     cachePlugin
@@ -95,47 +98,55 @@ export class AuthProvider {
         return result;
     }
 
-    public async signin(authWindow: BrowserWindow): Promise<AccountInfo> {
+    public async signin(): Promise<AccountInfo> {
         logger.log([ModuleName, 'info'], `signin`);
 
-        // authWindow.webContents.on('will-redirect', (_event: Electron.Event, responseUrl: string) => {
-        //     logger.log([ModuleName, 'info'], `will-redirect url found: ${responseUrl}`);
-        // });
+        await this.getTokenInteractive(
+            this.authWindow,
+            {
+                scopes: [UserProfileScope],
+                redirectUri: store.get(StoreKeys.redirectUri)
+            }
+        );
 
-        const authResponse = await this.getTokenInteractive(authWindow, this.authCodeUrlParams);
-        if (authResponse !== null) {
-            this.account = authResponse.account;
-        }
-        else {
-            this.account = await this.getAccount();
-        }
-
-        return this.account;
+        return this.getAccount();
     }
 
     public async signinSilent(): Promise<AccountInfo> {
         logger.log([ModuleName, 'info'], `signinSilent`);
 
-        if (!this.account) {
-            this.account = await this.getAccount();
-        }
-
-        return this.account;
+        return this.getAccount();
     }
 
     public async signout(): Promise<void> {
         logger.log([ModuleName, 'info'], `signout`);
 
         try {
-            if (this.account) {
-                await this.clientApplication.getTokenCache().removeAccount(this.account);
+            const account = await this.getAccount();
+            if (account) {
+                await this.clientApplication.getTokenCache().removeAccount(account);
             }
         }
         catch (ex) {
             logger.log([ModuleName, 'error'], `Error during signout: ${ex.message}`);
         }
+    }
 
-        this.account = null;
+    public async getCurrentAccount(): Promise<AccountInfo> {
+        return this.getAccount();
+    }
+
+    public async getScopedToken(scope: string): Promise<string> {
+        const account = await this.getAccount();
+        const { accessToken: scopedAccessToken } = await this.getTokenSilent(
+            this.authWindow,
+            {
+                account,
+                scopes: [scope]
+            }
+        );
+
+        return scopedAccessToken;
     }
 
     public async callEndpointWithToken(graphEndpointUrl: string, token: string): Promise<any> {
@@ -180,64 +191,43 @@ export class AuthProvider {
     // Initialize request objects used by this AuthModule.
     private setRequestObjects(): void {
         logger.log([ModuleName, 'info'], `setRequestObjects`);
-
-        const baseSilentRequest = {
-            // @ts-ignore
-            account: null,
-            forceRefresh: false
-        };
-
-        const requestScopes = ['User.Read'];
-        const redirectUri = store.get(StoreKeys.redirectUri);
-
-        this.authCodeUrlParams = {
-            scopes: requestScopes,
-            redirectUri
-        };
-
-        this.authCodeRequest = {
-            scopes: requestScopes,
-            redirectUri,
-            code: ''
-        };
-
-        this.silentProfileRequest = {
-            ...baseSilentRequest,
-            scopes: ['User.Read']
-        };
     }
 
-    public async getProfileToken(authWindow: BrowserWindow): Promise<string> {
-        logger.log([ModuleName, 'info'], `getProfileToken`);
-
-        return this.getToken(authWindow, this.silentProfileRequest);
-    }
-
-    public async getToken(authWindow: BrowserWindow, tokenRequest: SilentFlowRequest): Promise<string> {
+    public async getToken(authWindow: BrowserWindow, scopes: string[]): Promise<string> {
         logger.log([ModuleName, 'info'], `getToken`);
 
         let authenticationResult: AuthenticationResult;
 
-        const account = this.account || await this.getAccount();
+        const account = await this.getAccount();
         if (account) {
-            tokenRequest.account = account;
-            authenticationResult = await this.getTokenSilent(authWindow, tokenRequest);
+            authenticationResult = await this.getTokenSilent(
+                authWindow,
+                {
+                    account,
+                    scopes
+                }
+            );
         }
         else {
-            const authCodeRequest = { ...this.authCodeUrlParams, ...tokenRequest };
-            authenticationResult = await this.getTokenInteractive(authWindow, authCodeRequest);
+            authenticationResult = await this.getTokenInteractive(
+                authWindow,
+                {
+                    scopes,
+                    redirectUri: store.get(StoreKeys.redirectUri)
+                }
+            );
         }
 
-        return authenticationResult?.accessToken || null;
+        return authenticationResult?.accessToken || '';
     }
 
-    private async getTokenSilent(authWindow: BrowserWindow, tokenRequest: SilentFlowRequest): Promise<AuthenticationResult> {
+    private async getTokenSilent(authWindow: BrowserWindow, silentFlowTokenRequest: SilentFlowRequest): Promise<AuthenticationResult> {
         logger.log([ModuleName, 'info'], `getTokenSilent`);
 
         let authenticationResult;
 
         try {
-            authenticationResult = await this.clientApplication.acquireTokenSilent(tokenRequest);
+            authenticationResult = await this.clientApplication.acquireTokenSilent(silentFlowTokenRequest);
         }
         catch (ex) {
             logger.log([ModuleName, 'info'], `Silent token acquisition failed, acquiring token using pop up`);
@@ -247,12 +237,16 @@ export class AuthProvider {
 
         if (!authenticationResult) {
             try {
-                const authCodeRequest = { ...this.authCodeUrlParams, ...tokenRequest };
-
-                authenticationResult = await this.getTokenInteractive(authWindow, authCodeRequest);
+                authenticationResult = await this.getTokenInteractive(
+                    authWindow,
+                    {
+                        scopes: silentFlowTokenRequest.scopes,
+                        redirectUri: store.get(StoreKeys.redirectUri)
+                    }
+                );
             }
             catch (ex) {
-                logger.log([ModuleName, 'info'], `Silent token acquisition failed, acquiring token using pop up`);
+                logger.log([ModuleName, 'info'], `Silent token acquisition failed`);
 
                 authenticationResult = null;
             }
@@ -265,11 +259,13 @@ export class AuthProvider {
     private async getTokenInteractive(authWindow: BrowserWindow, tokenRequest: any): Promise<AuthenticationResult> {
         logger.log([ModuleName, 'info'], `getTokenInteractive`);
 
+        store.set(StoreKeys.lastOAuthError, '');
+
         // Proof Key for Code Exchange (PKCE) Setup
 
-        // MSAL enables PKCE in the Authorization Code Grant Flow by including the codeChallenge and codeChallengeMethod parameters
-        // in the request passed into getAuthCodeUrl() API, as well as the codeVerifier parameter in the
-        // second leg (acquireTokenByCode() API).
+        // MSAL enables PKCE in the Authorization Code Grant Flow by including the codeChallenge
+        // and codeChallengeMethod parameters in the request passed into getAuthCodeUrl() API,
+        // as well as the codeVerifier parameter in the second leg (acquireTokenByCode() API).
 
         // MSAL Node provides PKCE Generation tools through the CryptoProvider class, which exposes
         // the generatePkceCodes() asynchronous API. As illustrated in the example below, the verifier
@@ -284,26 +280,32 @@ export class AuthProvider {
             const cryptoProvider = new CryptoProvider();
             const { challenge, verifier } = await cryptoProvider.generatePkceCodes();
 
-            const authCodeUrlParams = {
-                ...this.authCodeUrlParams,
+            // Get Auth Code URL
+            const authCodeUrl = await this.clientApplication.getAuthCodeUrl({
                 scopes: tokenRequest.scopes,
+                redirectUri: tokenRequest.redirectUri,
                 codeChallenge: challenge, // PKCE Code Challenge
                 codeChallengeMethod: 'S256' // PKCE Code Challenge Method
-            };
-
-            // Get Auth Code URL
-            const authCodeUrl = await this.clientApplication.getAuthCodeUrl(authCodeUrlParams);
+            });
 
             const authCode = await this.listenForAuthorizationCode(authCodeUrl, authWindow);
 
             // Use Authorization Code and PKCE Code verifier to make token request
-            authenticationResult = this.clientApplication.acquireTokenByCode({
-                ...this.authCodeRequest,
+            // authenticationResult = await this.clientApplication.acquireTokenByCode({
+            //     ...this.authAzureManagementCodeRequest,
+            //     code: authCode,
+            //     codeVerifier: verifier
+            // });
+            authenticationResult = await this.clientApplication.acquireTokenByCode({
+                scopes: tokenRequest.scopes,
+                redirectUri: tokenRequest.redirectUri,
                 code: authCode,
                 codeVerifier: verifier
             });
         }
         catch (ex) {
+            store.set(StoreKeys.lastOAuthError, 'The signin process timed out while waiting for an authorization code');
+
             logger.log([ModuleName, 'error'], `getTokenInteractive error: ${ex.message}`);
 
             authenticationResult = null;
@@ -320,42 +322,15 @@ export class AuthProvider {
 
 
         await authWindow.loadURL(navigateUrl);
-        const codePromise = authCodeListener.registerProtocolAndStartListening();
-        const code = await codePromise;
+        const code = await authCodeListener.registerProtocolAndStartListening(AuthCodeTimeout);
 
         authCodeListener.unregisterProtocol();
 
         return code;
     }
 
-    // private async listenForAuthorizationCode2(navigateUrl: string, authWindow: BrowserWindow): Promise<string> {
-    //     logger.log([ModuleName, 'info'], `listenForAuthCode`);
-
-    //     let authCode = '';
-
-    //     try {
-    //         await authWindow.loadURL(navigateUrl);
-
-    //         authCode = await new Promise((resolve, reject) => {
-    //             authWindow.webContents.on('will-redirect', (_event: Electron.Event, responseUrl: string) => {
-    //                 try {
-    //                     const parsedUrl = new URL(responseUrl);
-    //                     return resolve(parsedUrl.searchParams.get('code'));
-    //                 }
-    //                 catch (err) {
-    //                     return reject(err);
-    //                 }
-    //             });
-    //         });
-    //     }
-    //     catch (ex) {
-    //         logger.log([ModuleName, 'error'], `listenForAuthorizationCode error: ${ex.message}`);
-    //     }
-
-    //     return authCode;
-    // }
-
-    // Calls getAllAccounts and determines the correct account to sign into, currently defaults to first account found in cache.
+    // Calls getAllAccounts and determines the correct account to sign into,
+    // currently defaults to first account found in cache.
     // https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-common/docs/Accounts.md
     private async getAccount(): Promise<AccountInfo> {
         logger.log([ModuleName, 'info'], `getAccount`);

@@ -18,17 +18,17 @@ const IotCentralPanel: FC<IIotCentralPanelProps> = (props: IIotCentralPanelProps
         <Grid>
             <Grid.Row>
                 <Grid.Column>
-                    <Header attached="top" as="h3" color={'blue'}>{`IoT Central apps in use by ${userDisplayName}`}</Header>
+                    <Header attached="top" as="h3" color={'blue'}>{`Apps in use by ${userDisplayName}`}</Header>
                     <Segment attached="bottom">
                         {
                             iotCentralApps.length > 0
                                 ? (
                                     <Item.Group divided>
                                         {
-                                            iotCentralApps.map((app, index) => {
+                                            iotCentralApps.map((app) => {
                                                 return (
                                                     <IotCentralPanelListItem
-                                                        key={index}
+                                                        key={app.id}
                                                         appName={app.displayName}
                                                         appId={app.applicationId}
                                                         appLocation={app.location}

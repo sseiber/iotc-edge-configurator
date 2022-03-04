@@ -19,11 +19,6 @@ export default class MenuBuilder {
     }
 
     public buildMenu(): Menu {
-        if (process.env.NODE_ENV === 'development') {
-            // @ts-ignore
-            const foo = 5;
-        }
-
         if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true') {
             this.setupDevelopmentEnvironment();
         }

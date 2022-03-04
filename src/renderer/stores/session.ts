@@ -1,13 +1,17 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import {
+    Ipc_GetLastOAuthError,
+    Ipc_SetLastOAuthError,
     Ipc_SetMsalConfig,
     Ipc_GetMsalConfig,
     Ipc_Signin,
     Ipc_Signout,
     Ipc_GetAccount,
-    IMsalConfig
+    IMsalConfig,
+    AppNavigationPaths
 } from '../../main/contextBridgeTypes';
 import { AccountInfo } from '@azure/msal-node';
+// import store, { StoreKeys } from '../../main/store';
 
 export enum AuthenticationState {
     Authenticated = 'Authenticated',
@@ -34,6 +38,14 @@ export class SessionStore {
         return process.env.NODE_ENV === 'production';
     }
 
+    public getLastOAuthError(): Promise<string> {
+        return window.ipcApi[Ipc_GetLastOAuthError]();
+    }
+
+    public setLastOAuthError(message: string): Promise<void> {
+        return window.ipcApi[Ipc_SetLastOAuthError](message);
+    }
+
     public async openConfiguration(): Promise<any> {
         return window.ipcApi[Ipc_GetMsalConfig]();
     }
@@ -46,7 +58,7 @@ export class SessionStore {
         return window.ipcApi[Ipc_GetMsalConfig]();
     }
 
-    public async signin(redirectPath = '/'): Promise<void> {
+    public async signin(redirectPath = AppNavigationPaths.Root): Promise<void> {
         runInAction(() => {
             this.authenticationState = AuthenticationState.Authenticating;
         });

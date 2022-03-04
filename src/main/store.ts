@@ -1,26 +1,28 @@
 import Store from 'electron-store';
 
 export enum StoreKeys {
+    lastOAuthError = 'lastOAuthError',
     configurationName = 'configurationName',
     clientId = 'clientId',
     clientSecret = 'clientSecret',
     tenantId = 'tenantId',
     subscriptionId = 'subscriptionId',
     redirectUri = 'redirectUri',
-    aadEndpointHost = 'aadEndpointHost',
+    aadAuthority = 'aadAuthority',
     graphEndpointHost = 'graphEndpointHost',
     graphMeEndpoint = 'graphMeEndpoint',
     appProtocolName = 'appProtocolName'
 }
 
 interface StoreType {
+    lastOAuthError: string;
     configurationName: string;
     clientId: string;
     clientSecret: string;
     tenantId: string;
     subscriptionId: string;
     redirectUri: string;
-    aadEndpointHost: string;
+    aadAuthority: string;
     graphEndpointHost: string;
     graphMeEndpoint: string;
     appProtocolName: string;
@@ -28,13 +30,14 @@ interface StoreType {
 
 const store = new Store<StoreType>({
     defaults: {
+        lastOAuthError: '',
         configurationName: '',
         clientId: '',
         clientSecret: '',
         tenantId: '',
         subscriptionId: '',
         redirectUri: '',
-        aadEndpointHost: 'https://login.microsoftonline.com/',
+        aadAuthority: 'https://login.microsoftonline.com/common/',
         graphEndpointHost: 'https://graph.microsoft.com/',
         graphMeEndpoint: 'v1.0/me',
         appProtocolName: ''
