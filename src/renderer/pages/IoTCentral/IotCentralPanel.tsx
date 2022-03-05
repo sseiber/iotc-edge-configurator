@@ -1,6 +1,6 @@
 import React, { FC } from 'react';
 import { Grid, Segment, Header, Message, Item } from 'semantic-ui-react';
-import { IIotCentralApp } from '../../../main/contextBridgeTypes';
+import { IIotCentralApp } from '../../../main/models/iotCentral';
 import IotCentralPanelListItem from './IotCentralPanelListItem';
 
 interface IIotCentralPanelProps {

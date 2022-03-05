@@ -5,7 +5,6 @@ import { Menu, Grid, Image, Icon, Dropdown } from 'semantic-ui-react';
 import { useAsyncEffect } from 'use-async-effect';
 import { useStore } from './stores/store';
 import { InfoDialogServiceProvider } from './components/InfoDialogContext';
-import { AppNavigationPaths } from '../main/contextBridgeTypes';
 import { AuthenticationState } from './stores/session';
 import AuthenticatedRoute from './components/AuthenticatedRoute';
 import HomePage from './pages/HomePage';
@@ -17,6 +16,14 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { log } from './utils';
 
 const ModuleName = 'App';
+
+export enum AppNavigationPaths {
+    Root = '/',
+    AzureConfig = '/azureconfig',
+    IoTCentral = '/iotcentral',
+    IIoTAdapter = '/iiotadapter',
+    ConfigAdapter = '/configadapter'
+}
 
 const App: FC = observer((props: any) => {
     const params = useParams();

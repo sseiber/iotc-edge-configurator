@@ -1,11 +1,12 @@
 import { makeAutoObservable, runInAction } from 'mobx';
+import * as contextBridgeTypes from '../../main/contextBridgeTypes';
 import {
-    Ipc_OpenConfiguration,
-    Ipc_GetIotcApps,
-    Ipc_GetIotcDevices,
     IIotCentralApp,
     IIotCentralDevice
-} from '../../main/contextBridgeTypes';
+} from '../../main/models/iotCentral';
+import {
+    Endpoint
+} from '../../main/models/industrialConnect';
 
 export class IotCentralStore {
     constructor() {
@@ -17,11 +18,12 @@ export class IotCentralStore {
     public waitingOnApiCall = false;
     public iotcApps: IIotCentralApp[] = [];
     public iotcDevices: IIotCentralDevice[] = [];
+    public connectionGood = false;
 
     public serviceError = '';
 
     public async openConfiguration(): Promise<void> {
-        const configuration = await window.ipcApi[Ipc_OpenConfiguration]();
+        const configuration = await window.ipcApi[contextBridgeTypes.Ipc_OpenConfiguration]();
         if (configuration) {
             this.configuration = configuration;
         }
@@ -33,7 +35,7 @@ export class IotCentralStore {
         });
 
         try {
-            const response = await window.ipcApi[Ipc_GetIotcApps]();
+            const response = await window.ipcApi[contextBridgeTypes.Ipc_GetIotcApps]();
             if (response) {
                 runInAction(() => {
                     this.iotcApps = response;
@@ -58,12 +60,35 @@ export class IotCentralStore {
         });
 
         try {
-            const response = await window.ipcApi[Ipc_GetIotcDevices](appSubdomain);
+            const response = await window.ipcApi[contextBridgeTypes.Ipc_GetIotcDevices](appSubdomain);
             if (response) {
                 runInAction(() => {
                     this.iotcDevices = response;
                 });
             }
+        }
+        catch (ex) {
+            runInAction(() => {
+                this.serviceError = `An error occurred while attempting to get the list of IoT Central apps: ${ex.message}`;
+            });
+        }
+        finally {
+            runInAction(() => {
+                this.waitingOnApiCall = false;
+            });
+        }
+    }
+
+    public async testIndustrialConnectEndpoint(opcEndpoint: Endpoint, appSubdomain: string, gatewayId: string): Promise<void> {
+        runInAction(() => {
+            this.waitingOnApiCall = true;
+        });
+
+        try {
+            const connectionGood = await window.ipcApi[contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint](opcEndpoint, appSubdomain, gatewayId);
+            runInAction(() => {
+                this.connectionGood = connectionGood;
+            });
         }
         catch (ex) {
             runInAction(() => {
@@ -83,7 +108,7 @@ export class IotCentralStore {
         });
 
         try {
-            const response = await window.ipcApi[Ipc_GetIotcDevices](appSubdomain);
+            const response = await window.ipcApi[contextBridgeTypes.Ipc_GetIotcDevices](appSubdomain);
             if (response) {
                 runInAction(() => {
                     this.iotcDevices = response;

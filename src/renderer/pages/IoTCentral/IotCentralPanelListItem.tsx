@@ -1,10 +1,14 @@
 import React, { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Item, Label } from 'semantic-ui-react';
+import { AppNavigationPaths } from '../../App';
 import {
-    Ipc_OpenLink,
-    AppNavigationPaths
+    IoTCentralBaseDomain
+} from '../../../main/models/iotCentral';
+import {
+    Ipc_OpenLink
 } from '../../../main/contextBridgeTypes';
+
 
 interface IIotCentralPanelListItemProps {
     appName: string;
@@ -23,7 +27,7 @@ const IotCentralPanelListItem: FC<IIotCentralPanelListItemProps> = (props: IIotC
     const navigate = useNavigate();
 
     const openBrowser = (subdomain: string) => {
-        void window.ipcApi[Ipc_OpenLink](`https://${subdomain}.azureiotcentral.com/`);
+        void window.ipcApi[Ipc_OpenLink](`https://${subdomain}.${IoTCentralBaseDomain}`);
     };
 
     const navigateToIotcAppPage = () => {

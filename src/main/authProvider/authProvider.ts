@@ -23,6 +23,15 @@ export const UserProfileScope = 'User.Read';
 export const AzureManagementScope = 'https://management.azure.com/.default';
 export const IoTCentralApiScope = 'https://apps.azureiotcentral.com/.default';
 
+export interface IMsalConfig {
+    clientId: string;
+    clientSecret?: string;
+    tenantId: string;
+    subscriptionId: string;
+    redirectUri: string;
+    aadAuthority: string;
+    appProtocolName: string;
+}
 
 // Configuration object to be passed to MSAL instance on creation.
 // For a full list of MSAL Node configuration parameters, visit:
@@ -81,8 +90,6 @@ export class AuthProvider {
                     }
                 }
             });
-
-            this.setRequestObjects();
 
             this.account = await this.signinSilent();
             if (this.account) {
@@ -186,11 +193,6 @@ export class AuthProvider {
         }
 
         return response;
-    }
-
-    // Initialize request objects used by this AuthModule.
-    private setRequestObjects(): void {
-        logger.log([ModuleName, 'info'], `setRequestObjects`);
     }
 
     public async getToken(authWindow: BrowserWindow, scopes: string[]): Promise<string> {

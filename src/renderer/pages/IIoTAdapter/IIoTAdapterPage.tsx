@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import React, { FC } from 'react';
 import { useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { useAsyncEffect } from 'use-async-effect';
@@ -14,16 +14,12 @@ const IIoTAdapterPage: FC = observer(() => {
         iotCentralStore
     } = useStore();
 
-    const [loading, setLoading] = useState(false);
-
     const appId = (location.state as any).appId;
     const appName = (location.state as any).appName;
     const appLocation = (location.state as any).appLocation;
     const appSubdomain = (location.state as any).appSubdomain;
 
     useAsyncEffect(async isMounted => {
-        setLoading(true);
-
         try {
             await iotCentralStore.getIotCentralDevices(appSubdomain);
 
@@ -39,11 +35,6 @@ const IIoTAdapterPage: FC = observer(() => {
                 description: ex.message
             });
         }
-        finally {
-            setLoading(false);
-        }
-
-        setLoading(false);
     }, []);
 
     return (
@@ -69,10 +60,11 @@ const IIoTAdapterPage: FC = observer(() => {
                             </Label>
                         </Message.Content>
                     </Message>
-                    <Dimmer active={loading} inverted>
+                    <Dimmer active={iotCentralStore.waitingOnApiCall} inverted>
                         <Loader>Pending...</Loader>
                     </Dimmer>
                     <IIoTAdapterPanel
+                        appSubdomain={appSubdomain}
                         devices={iotCentralStore.iotcDevices}
                     />
                 </Grid.Column>

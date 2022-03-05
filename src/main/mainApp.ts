@@ -10,31 +10,24 @@ import {
 import store, { StoreKeys } from './store';
 import logger from './logger';
 import MenuBuilder from './menu';
+import * as contextBridgeTypes from './contextBridgeTypes';
 import {
     UserProfileScope,
     AzureManagementScope,
     IoTCentralApiScope,
+    IMsalConfig,
     AuthProvider
 } from './authProvider/authProvider';
 import {
-    Ipc_Log,
-    Ipc_GetLastOAuthError,
-    Ipc_SetLastOAuthError,
-    Ipc_OpenConfiguration,
-    Ipc_SetMsalConfig,
-    Ipc_GetMsalConfig,
-    Ipc_Signin,
-    Ipc_Signout,
-    Ipc_GetAccount,
-    Ipc_GetProfile,
-    Ipc_RequestApi,
-    Ipc_GetIotcApps,
-    Ipc_GetIotcDevices,
-    Ipc_OpenLink,
-    IMsalConfig,
+    IoTCentralBaseDomain,
     IIotCentralApp,
     IIotCentralDevice
-} from './contextBridgeTypes';
+} from '../main/models/iotCentral';
+import {
+    IndustrialConnectModuleName,
+    IndustrialConnectCommands,
+    Endpoint
+} from '../main/models/industrialConnect';
 import { AccountInfo } from '@azure/msal-node';
 import { requestApi } from './utils';
 import { join as pathJoin } from 'path';
@@ -105,26 +98,15 @@ export class MainApp {
     }
 
     private registerEventHandlers(): void {
-        // ContextBridge event handlers
-
-        ipcMain.handle(Ipc_Log, async (_event: IpcMainInvokeEvent, tags: string[], message: string): Promise<void> => {
+        //
+        // Main process event handlers
+        //
+        ipcMain.handle(contextBridgeTypes.Ipc_Log, async (_event: IpcMainInvokeEvent, tags: string[], message: string): Promise<void> => {
             logger.log(tags, message);
         });
 
-        ipcMain.handle(Ipc_GetLastOAuthError, async (_event: IpcMainInvokeEvent): Promise<string> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_GetLastOAuthError} handler`);
-
-            return store.get(StoreKeys.lastOAuthError);
-        });
-
-        ipcMain.handle(Ipc_SetLastOAuthError, async (_event: IpcMainInvokeEvent, message: string): Promise<void> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_SetLastOAuthError} handler`);
-
-            store.set(StoreKeys.lastOAuthError, message);
-        });
-
-        ipcMain.handle(Ipc_OpenConfiguration, async (_event: IpcMainInvokeEvent): Promise<any> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_OpenConfiguration} handler`);
+        ipcMain.handle(contextBridgeTypes.Ipc_OpenConfiguration, async (_event: IpcMainInvokeEvent): Promise<any> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_OpenConfiguration} handler`);
 
             const openFileResult = await dialog.showOpenDialog(this.mainWindow, {
                 title: 'Open IoT Central configuration',
@@ -135,14 +117,35 @@ export class MainApp {
 
             const configFile = openFileResult.canceled ? '' : openFileResult.filePaths[0];
             if (configFile) {
-                logger.log([ModuleName, 'info'], `ipcMain ${Ipc_OpenConfiguration} handler`);
+                logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_OpenConfiguration} handler`);
             }
 
             return 'foo';
         });
 
-        ipcMain.handle(Ipc_SetMsalConfig, async (_event: IpcMainInvokeEvent, msalConfig: IMsalConfig): Promise<void> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_SetMsalConfig} handler`);
+        ipcMain.handle(contextBridgeTypes.Ipc_OpenLink, async (_event: IpcMainInvokeEvent, url: string): Promise<void> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_OpenLink} handler`);
+
+            void shell.openExternal(url);
+        });
+
+        //
+        // Auth event handlers
+        //
+        ipcMain.handle(contextBridgeTypes.Ipc_GetLastOAuthError, async (_event: IpcMainInvokeEvent): Promise<string> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetLastOAuthError} handler`);
+
+            return store.get(StoreKeys.lastOAuthError);
+        });
+
+        ipcMain.handle(contextBridgeTypes.Ipc_SetLastOAuthError, async (_event: IpcMainInvokeEvent, message: string): Promise<void> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_SetLastOAuthError} handler`);
+
+            store.set(StoreKeys.lastOAuthError, message);
+        });
+
+        ipcMain.handle(contextBridgeTypes.Ipc_SetMsalConfig, async (_event: IpcMainInvokeEvent, msalConfig: IMsalConfig): Promise<void> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_SetMsalConfig} handler`);
 
             store.set(StoreKeys.clientId, msalConfig.clientId);
             store.set(StoreKeys.clientSecret, msalConfig.clientSecret || '');
@@ -153,8 +156,8 @@ export class MainApp {
             store.set(StoreKeys.appProtocolName, msalConfig.appProtocolName);
         });
 
-        ipcMain.handle(Ipc_GetMsalConfig, async (_event: IpcMainInvokeEvent): Promise<IMsalConfig> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_GetMsalConfig} handler`);
+        ipcMain.handle(contextBridgeTypes.Ipc_GetMsalConfig, async (_event: IpcMainInvokeEvent): Promise<IMsalConfig> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetMsalConfig} handler`);
 
             return {
                 clientId: store.get(StoreKeys.clientId),
@@ -167,8 +170,8 @@ export class MainApp {
             };
         });
 
-        ipcMain.handle(Ipc_Signin, async (_event: IpcMainInvokeEvent, redirectPath?: string): Promise<AccountInfo> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_Signin} handler`);
+        ipcMain.handle(contextBridgeTypes.Ipc_Signin, async (_event: IpcMainInvokeEvent, redirectPath?: string): Promise<AccountInfo> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_Signin} handler`);
 
             let accountInfo;
 
@@ -193,14 +196,14 @@ export class MainApp {
                 // authWindow.close();
             }
             catch (ex) {
-                logger.log([ModuleName, 'error'], `Error during ${Ipc_Signin} handler: ${ex.message}`);
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_Signin} handler: ${ex.message}`);
             }
 
             return accountInfo;
         });
 
-        ipcMain.handle(Ipc_Signout, async (_event: IpcMainInvokeEvent): Promise<void> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_Signout} handler`);
+        ipcMain.handle(contextBridgeTypes.Ipc_Signout, async (_event: IpcMainInvokeEvent): Promise<void> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_Signout} handler`);
 
             try {
                 await this.authProvider.signout();
@@ -208,12 +211,12 @@ export class MainApp {
                 await this.mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
             }
             catch (ex) {
-                logger.log([ModuleName, 'error'], `Error during ${Ipc_Signout} handler: ${ex.message}`);
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_Signout} handler: ${ex.message}`);
             }
         });
 
-        ipcMain.handle(Ipc_GetAccount, async (_event: IpcMainInvokeEvent): Promise<AccountInfo> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_GetAccount} handler`);
+        ipcMain.handle(contextBridgeTypes.Ipc_GetAccount, async (_event: IpcMainInvokeEvent): Promise<AccountInfo> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetAccount} handler`);
 
             let account;
 
@@ -221,14 +224,14 @@ export class MainApp {
                 account = this.authProvider.getCurrentAccount();
             }
             catch (ex) {
-                logger.log([ModuleName, 'error'], `Error during ${Ipc_GetAccount} handler: ${ex.message}`);
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetAccount} handler: ${ex.message}`);
             }
 
             return account;
         });
 
-        ipcMain.handle(Ipc_GetProfile, async (_event: IpcMainInvokeEvent): Promise<any> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_GetProfile} handler`);
+        ipcMain.handle(contextBridgeTypes.Ipc_GetProfile, async (_event: IpcMainInvokeEvent): Promise<any> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetProfile} handler`);
 
             let graphResponse;
 
@@ -238,14 +241,18 @@ export class MainApp {
                 graphResponse = await this.authProvider.callEndpointWithToken(`${store.get(StoreKeys.graphEndpointHost)}${store.get(StoreKeys.graphMeEndpoint)}`, token);
             }
             catch (ex) {
-                logger.log([ModuleName, 'error'], `Error during ${Ipc_GetProfile} handler: ${ex.message}`);
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetProfile} handler: ${ex.message}`);
             }
 
             return graphResponse;
         });
 
-        ipcMain.handle(Ipc_RequestApi, async (_event: IpcMainInvokeEvent, config: any): Promise<any> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_RequestApi} handler`);
+        //
+        // IoT Central event handlers
+        //
+
+        ipcMain.handle(contextBridgeTypes.Ipc_RequestApi, async (_event: IpcMainInvokeEvent, config: any): Promise<any> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_RequestApi} handler`);
 
             let response;
 
@@ -253,14 +260,14 @@ export class MainApp {
                 response = await requestApi(config);
             }
             catch (ex) {
-                logger.log([ModuleName, 'error'], `Error during ${Ipc_RequestApi} handler: ${ex.message}`);
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_RequestApi} handler: ${ex.message}`);
             }
 
             return response;
         });
 
-        ipcMain.handle(Ipc_GetIotcApps, async (_event: IpcMainInvokeEvent): Promise<IIotCentralApp[]> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_GetIotcApps} handler`);
+        ipcMain.handle(contextBridgeTypes.Ipc_GetIotcApps, async (_event: IpcMainInvokeEvent): Promise<IIotCentralApp[]> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetIotcApps} handler`);
 
             let iotcApps: IIotCentralApp[] = [];
 
@@ -268,14 +275,14 @@ export class MainApp {
                 iotcApps = await this.getIotCentralApps();
             }
             catch (ex) {
-                logger.log([ModuleName, 'error'], `Error during ${Ipc_GetIotcApps} handler: ${ex.message}`);
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetIotcApps} handler: ${ex.message}`);
             }
 
             return iotcApps;
         });
 
-        ipcMain.handle(Ipc_GetIotcDevices, async (_event: IpcMainInvokeEvent, appSubdomain: string): Promise<IIotCentralDevice[]> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_GetIotcDevices} handler`);
+        ipcMain.handle(contextBridgeTypes.Ipc_GetIotcDevices, async (_event: IpcMainInvokeEvent, appSubdomain: string): Promise<IIotCentralDevice[]> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetIotcDevices} handler`);
 
             let iotcDevices: IIotCentralDevice[] = [];
 
@@ -283,16 +290,26 @@ export class MainApp {
                 iotcDevices = await this.getIotCentralDevices(appSubdomain);
             }
             catch (ex) {
-                logger.log([ModuleName, 'error'], `Error during ${Ipc_GetIotcDevices} handler: ${ex.message}`);
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetIotcDevices} handler: ${ex.message}`);
             }
 
             return iotcDevices;
         });
 
-        ipcMain.handle(Ipc_OpenLink, async (_event: IpcMainInvokeEvent, url: string): Promise<void> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${Ipc_OpenLink} handler`);
+        // eslint-disable-next-line max-len
+        ipcMain.handle(contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint, async (_event: IpcMainInvokeEvent, opcEndpoint: Endpoint, appSubdomain: string, gatewayId: string): Promise<boolean> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint} handler`);
 
-            void shell.openExternal(url);
+            let connectionGood;
+
+            try {
+                connectionGood = await this.testIndustrialConnectEndpoint(opcEndpoint, appSubdomain, gatewayId);
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint} handler: ${ex.message}`);
+            }
+
+            return connectionGood;
         });
     }
 
@@ -364,7 +381,7 @@ export class MainApp {
             const accessToken = await this.authProvider.getScopedToken(IoTCentralApiScope);
             const config = {
                 method: 'get',
-                url: `https://${appSubdomain}.azureiotcentral.com/api/devices?api-version=1.1-preview`,
+                url: `https://${appSubdomain}.${IoTCentralBaseDomain}/api/devices?api-version=1.1-preview`,
                 headers: {
                     Authorization: `Bearer ${accessToken}`
                 }
@@ -388,5 +405,43 @@ export class MainApp {
         }
 
         return iotcDevices;
+    }
+
+    private async testIndustrialConnectEndpoint(opcEndpoint: Endpoint, appSubdomain: string, gatewayId: string): Promise<boolean> {
+        logger.log([ModuleName, 'info'], `testIndustrialConnectEndpoint`);
+
+        let connectionGood = false;
+
+        try {
+            const accessToken = await this.authProvider.getScopedToken(IoTCentralApiScope);
+            const config = {
+                method: 'post',
+                // eslint-disable-next-line max-len
+                uxl: `https://${appSubdomain}.${IoTCentralBaseDomain}/api/devices/${gatewayId}/modules/${IndustrialConnectModuleName}/commands/${IndustrialConnectCommands.TestConnection}?api-version=1.1-preview`,
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                },
+                data: {
+                    connectionTimeout: 10,
+                    responseTimeout: 10,
+                    request: {
+                        opcEndpoint
+                    }
+                }
+            };
+
+            const response = await requestApi(config);
+            if (response && response.status === 200) {
+                connectionGood = true;
+            }
+            else {
+                logger.log([ModuleName, 'error'], `Error during testIndustrialConnectEndpoint`);
+            }
+        }
+        catch (ex) {
+            logger.log([ModuleName, 'error'], `Error during testIndustrialConnectEndpoint: ${ex.message}`);
+        }
+
+        return connectionGood;
     }
 }

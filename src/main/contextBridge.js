@@ -1,35 +1,27 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const { contextBridge, ipcRenderer } = require('electron');
-const {
-    Ipc_Log,
-    Ipc_GetLastOAuthError,
-    Ipc_SetLastOAuthError,
-    Ipc_OpenConfiguration,
-    Ipc_SetMsalConfig,
-    Ipc_GetMsalConfig,
-    Ipc_Signin,
-    Ipc_Signout,
-    Ipc_GetAccount,
-    Ipc_GetProfile,
-    Ipc_RequestApi,
-    Ipc_GetIotcApps,
-    Ipc_GetIotcDevices,
-    Ipc_OpenLink
-} = require('./contextBridgeTypes.ts');
+const contextBridgeTypes = require('./contextBridgeTypes.ts');
 
 contextBridge.exposeInMainWorld('ipcApi', {
-    [Ipc_Log]: (tags, message) => ipcRenderer.invoke(Ipc_Log, tags, message),
-    [Ipc_GetLastOAuthError]: () => ipcRenderer.invoke(Ipc_GetLastOAuthError),
-    [Ipc_SetLastOAuthError]: (message) => ipcRenderer.invoke(Ipc_SetLastOAuthError, message),
-    [Ipc_OpenConfiguration]: () => ipcRenderer.invoke(Ipc_OpenConfiguration),
-    [Ipc_SetMsalConfig]: (msalConfig) => ipcRenderer.invoke(Ipc_SetMsalConfig, msalConfig),
-    [Ipc_GetMsalConfig]: () => ipcRenderer.invoke(Ipc_GetMsalConfig),
-    [Ipc_Signin]: (redirectPath) => ipcRenderer.invoke(Ipc_Signin, redirectPath),
-    [Ipc_Signout]: () => ipcRenderer.invoke(Ipc_Signout),
-    [Ipc_GetAccount]: () => ipcRenderer.invoke(Ipc_GetAccount),
-    [Ipc_GetProfile]: () => ipcRenderer.invoke(Ipc_GetProfile),
-    [Ipc_RequestApi]: (config) => ipcRenderer.invoke(Ipc_RequestApi, config),
-    [Ipc_GetIotcApps]: () => ipcRenderer.invoke(Ipc_GetIotcApps),
-    [Ipc_GetIotcDevices]: (appSubdomain) => ipcRenderer.invoke(Ipc_GetIotcDevices, appSubdomain),
-    [Ipc_OpenLink]: (url) => ipcRenderer.invoke(Ipc_OpenLink, url)
+    // Main
+    [contextBridgeTypes.Ipc_Log]: (tags, message) => ipcRenderer.invoke(contextBridgeTypes.Ipc_Log, tags, message),
+    [contextBridgeTypes.Ipc_OpenConfiguration]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_OpenConfiguration),
+    [contextBridgeTypes.Ipc_OpenLink]: (url) => ipcRenderer.invoke(contextBridgeTypes.Ipc_OpenLink, url),
+
+    // Auth
+    [contextBridgeTypes.Ipc_GetLastOAuthError]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetLastOAuthError),
+    [contextBridgeTypes.Ipc_SetLastOAuthError]: (message) => ipcRenderer.invoke(contextBridgeTypes.Ipc_SetLastOAuthError, message),
+    [contextBridgeTypes.Ipc_SetMsalConfig]: (msalConfig) => ipcRenderer.invoke(contextBridgeTypes.Ipc_SetMsalConfig, msalConfig),
+    [contextBridgeTypes.Ipc_GetMsalConfig]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetMsalConfig),
+    [contextBridgeTypes.Ipc_Signin]: (redirectPath) => ipcRenderer.invoke(contextBridgeTypes.Ipc_Signin, redirectPath),
+    [contextBridgeTypes.Ipc_Signout]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_Signout),
+    [contextBridgeTypes.Ipc_GetAccount]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetAccount),
+    [contextBridgeTypes.Ipc_GetProfile]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetProfile),
+
+    // IoT Central
+    [contextBridgeTypes.Ipc_RequestApi]: (config) => ipcRenderer.invoke(contextBridgeTypes.Ipc_RequestApi, config),
+    [contextBridgeTypes.Ipc_GetIotcApps]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcApps),
+    [contextBridgeTypes.Ipc_GetIotcDevices]: (appSubdomain) => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcDevices, appSubdomain),
+    // eslint-disable-next-line max-len
+    [contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint, appSubdomain, gatewayId) => ipcRenderer.invoke(contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint, opcEndpoint, appSubdomain, gatewayId)
 });

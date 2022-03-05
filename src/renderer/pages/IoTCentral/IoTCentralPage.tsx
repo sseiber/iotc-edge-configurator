@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import React, { FC } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useAsyncEffect } from 'use-async-effect';
 import { Dimmer, Grid, Loader, Message } from 'semantic-ui-react';
@@ -11,12 +11,9 @@ const IoTCentralPage: FC = observer(() => {
         sessionStore,
         iotCentralStore
     } = useStore();
-    const [loading, setLoading] = useState(false);
     const infoDialogContext = useInfoDialog();
 
     useAsyncEffect(async isMounted => {
-        setLoading(true);
-
         try {
             await iotCentralStore.getIotCentralApps();
 
@@ -32,11 +29,6 @@ const IoTCentralPage: FC = observer(() => {
                 description: ex.message
             });
         }
-        finally {
-            setLoading(false);
-        }
-
-        setLoading(false);
     }, []);
 
     return (
@@ -46,7 +38,7 @@ const IoTCentralPage: FC = observer(() => {
                     <Message size="huge">
                         <Message.Header>Azure IoT Central Solution Builder</Message.Header>
                     </Message>
-                    <Dimmer active={loading} inverted>
+                    <Dimmer active={iotCentralStore.waitingOnApiCall} inverted>
                         <Loader>Pending...</Loader>
                     </Dimmer>
                     <IotCentralPanel

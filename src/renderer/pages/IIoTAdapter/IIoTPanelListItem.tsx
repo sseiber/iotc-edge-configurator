@@ -1,14 +1,16 @@
 import React, { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Item, Label } from 'semantic-ui-react';
-import { AppNavigationPaths } from '../../../main/contextBridgeTypes';
+import { AppNavigationPaths } from '../../App';
 
 interface IIoTPanelListItemProps {
+    appSubdomain: string;
     deviceName: string;
     deviceId: string;
 }
 const IIoTPanelListItem: FC<IIoTPanelListItemProps> = (props: IIoTPanelListItemProps) => {
     const {
+        appSubdomain,
         deviceName,
         deviceId
     } = props;
@@ -16,7 +18,13 @@ const IIoTPanelListItem: FC<IIoTPanelListItemProps> = (props: IIoTPanelListItemP
     const navigate = useNavigate();
 
     const onConfigure = () => {
-        navigate(AppNavigationPaths.ConfigAdapter);
+        navigate(AppNavigationPaths.ConfigAdapter, {
+            state: {
+                appSubdomain,
+                deviceName,
+                deviceId
+            }
+        });
     };
 
     return (

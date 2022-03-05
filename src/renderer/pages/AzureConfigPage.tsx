@@ -5,7 +5,7 @@ import { useAsyncEffect } from 'use-async-effect';
 import { Button, Form, Grid, Input, Message } from 'semantic-ui-react';
 import { useStore } from '../stores/store';
 import { useInfoDialog, showInfoDialog } from '../components/InfoDialogContext';
-import { AppNavigationPaths } from '../../main/contextBridgeTypes';
+import { AppNavigationPaths } from '../App';
 
 const AzureConfigPage: FC = observer(() => {
     const navigate = useNavigate();
@@ -79,17 +79,28 @@ const AzureConfigPage: FC = observer(() => {
             });
         }
         else {
-            await sessionStore.setMsalConfig({
-                clientId,
-                clientSecret,
-                tenantId,
-                subscriptionId,
-                redirectUri,
-                aadAuthority,
-                appProtocolName
+            const proceed = await showInfoDialog(infoDialogContext, {
+                catchOnCancel: true,
+                variant: 'confirm',
+                title: 'Azure MSAL configuration',
+                description: 'Changing the configuration will sign out of your current session',
+                actionLabel: 'Continue'
             });
 
-            void sessionStore.signin(AppNavigationPaths.IoTCentral);
+            if (proceed) {
+                await sessionStore.setMsalConfig({
+                    clientId,
+                    clientSecret,
+                    tenantId,
+                    subscriptionId,
+                    redirectUri,
+                    aadAuthority,
+                    appProtocolName
+                });
+
+                await sessionStore.signout();
+                navigate(AppNavigationPaths.Root);
+            }
         }
     };
 
@@ -112,7 +123,6 @@ const AzureConfigPage: FC = observer(() => {
                                 onChange={(e) => onFieldChange(e, 'clientId')}
                             />
                         </Form.Field>
-
                         <Form.Field>
                             <label>Client secret:</label>
                             <Input
@@ -120,7 +130,6 @@ const AzureConfigPage: FC = observer(() => {
                                 onChange={(e) => onFieldChange(e, 'clientSecret')}
                             />
                         </Form.Field>
-
                         <Form.Field>
                             <label>Tenant id:</label>
                             <Input
@@ -128,7 +137,6 @@ const AzureConfigPage: FC = observer(() => {
                                 onChange={(e) => onFieldChange(e, 'tenantId')}
                             />
                         </Form.Field>
-
                         <Form.Field>
                             <label>Subscription id:</label>
                             <Input
@@ -136,7 +144,6 @@ const AzureConfigPage: FC = observer(() => {
                                 onChange={(e) => onFieldChange(e, 'subscriptionId')}
                             />
                         </Form.Field>
-
                         <Form.Field>
                             <label>Redirect uri:</label>
                             <Input
@@ -144,7 +151,6 @@ const AzureConfigPage: FC = observer(() => {
                                 onChange={(e) => onFieldChange(e, 'redirectUri')}
                             />
                         </Form.Field>
-
                         <Form.Field>
                             <label>AAD authority endpoint:</label>
                             <Input
@@ -152,7 +158,6 @@ const AzureConfigPage: FC = observer(() => {
                                 onChange={(e) => onFieldChange(e, 'aadAuthority')}
                             />
                         </Form.Field>
-
                         <Form.Field>
                             <label>App protocol:</label>
                             <Input

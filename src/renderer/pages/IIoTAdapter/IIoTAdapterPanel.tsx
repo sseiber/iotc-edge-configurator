@@ -1,14 +1,16 @@
 import React, { FC } from 'react';
 import { Grid, Segment, Header, Message, Item } from 'semantic-ui-react';
-import { IIotCentralDevice } from '../../../main/contextBridgeTypes';
+import { IIotCentralDevice } from '../../../main/models/iotCentral';
 import IIoTAdapterPanelListItem from './IIoTPanelListItem';
 
 interface IIoTAdapterPanelProps {
+    appSubdomain: string;
     devices: IIotCentralDevice[];
 }
 
 const IIoTAdapterPanel: FC<IIoTAdapterPanelProps> = (props: IIoTAdapterPanelProps) => {
     const {
+        appSubdomain,
         devices
     } = props;
 
@@ -27,6 +29,7 @@ const IIoTAdapterPanel: FC<IIoTAdapterPanelProps> = (props: IIoTAdapterPanelProp
                                                 return (
                                                     <IIoTAdapterPanelListItem
                                                         key={device.id}
+                                                        appSubdomain={appSubdomain}
                                                         deviceId={device.id}
                                                         deviceName={device.displayName}
                                                     />

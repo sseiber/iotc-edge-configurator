@@ -1,16 +1,10 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import {
-    Ipc_GetLastOAuthError,
-    Ipc_SetLastOAuthError,
-    Ipc_SetMsalConfig,
-    Ipc_GetMsalConfig,
-    Ipc_Signin,
-    Ipc_Signout,
-    Ipc_GetAccount,
-    IMsalConfig,
-    AppNavigationPaths
-} from '../../main/contextBridgeTypes';
+    IMsalConfig
+} from '../../main/authProvider/authProvider';
+import * as contextBridgeTypes from '../../main/contextBridgeTypes';
 import { AccountInfo } from '@azure/msal-node';
+import { AppNavigationPaths } from '../App';
 // import store, { StoreKeys } from '../../main/store';
 
 export enum AuthenticationState {
@@ -39,23 +33,23 @@ export class SessionStore {
     }
 
     public getLastOAuthError(): Promise<string> {
-        return window.ipcApi[Ipc_GetLastOAuthError]();
+        return window.ipcApi[contextBridgeTypes.Ipc_GetLastOAuthError]();
     }
 
     public setLastOAuthError(message: string): Promise<void> {
-        return window.ipcApi[Ipc_SetLastOAuthError](message);
+        return window.ipcApi[contextBridgeTypes.Ipc_SetLastOAuthError](message);
     }
 
     public async openConfiguration(): Promise<any> {
-        return window.ipcApi[Ipc_GetMsalConfig]();
+        return window.ipcApi[contextBridgeTypes.Ipc_GetMsalConfig]();
     }
 
     public async setMsalConfig(msalConfig: IMsalConfig): Promise<void> {
-        return window.ipcApi[Ipc_SetMsalConfig](msalConfig);
+        return window.ipcApi[contextBridgeTypes.Ipc_SetMsalConfig](msalConfig);
     }
 
     public async getMsalConfig(): Promise<IMsalConfig> {
-        return window.ipcApi[Ipc_GetMsalConfig]();
+        return window.ipcApi[contextBridgeTypes.Ipc_GetMsalConfig]();
     }
 
     public async signin(redirectPath = AppNavigationPaths.Root): Promise<void> {
@@ -64,7 +58,7 @@ export class SessionStore {
         });
 
         try {
-            const account: AccountInfo = await window.ipcApi[Ipc_Signin](redirectPath);
+            const account: AccountInfo = await window.ipcApi[contextBridgeTypes.Ipc_Signin](redirectPath);
             if (account) {
                 runInAction(() => {
                     this.authenticationState = AuthenticationState.Authenticated;
@@ -87,7 +81,7 @@ export class SessionStore {
 
     public async signout(): Promise<void> {
         try {
-            await window.ipcApi[Ipc_Signout]();
+            await window.ipcApi[contextBridgeTypes.Ipc_Signout]();
             runInAction(() => {
                 this.username = '';
                 this.displayName = '';
@@ -104,7 +98,7 @@ export class SessionStore {
         });
 
         try {
-            const response: any = await window.ipcApi[Ipc_Signin]('');
+            const response: any = await window.ipcApi[contextBridgeTypes.Ipc_Signin]('');
             if (response?.status === undefined) {
                 runInAction(() => {
                     this.authenticationState = AuthenticationState.Authenticated;
@@ -127,7 +121,7 @@ export class SessionStore {
 
     public async getUserSessionInfo(_userId: string): Promise<void> {
         try {
-            const account = await window.ipcApi[Ipc_GetAccount]();
+            const account = await window.ipcApi[contextBridgeTypes.Ipc_GetAccount]();
             if (account) {
                 runInAction(() => {
                     this.authenticationState = AuthenticationState.Authenticated;
