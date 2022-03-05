@@ -10,7 +10,6 @@ interface IIotCentralPanelProps {
 
 const IotCentralPanel: FC<IIotCentralPanelProps> = (props: IIotCentralPanelProps) => {
     const {
-        userDisplayName,
         iotCentralApps
     } = props;
 
@@ -18,7 +17,7 @@ const IotCentralPanel: FC<IIotCentralPanelProps> = (props: IIotCentralPanelProps
         <Grid>
             <Grid.Row>
                 <Grid.Column>
-                    <Header attached="top" as="h3" color={'blue'}>{`Apps in use by ${userDisplayName}`}</Header>
+                    <Header attached="top" as="h3" color={'blue'}>{`Industrial Connector apps`}</Header>
                     <Segment attached="bottom">
                         {
                             iotCentralApps.length > 0

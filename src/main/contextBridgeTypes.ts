@@ -2,32 +2,36 @@ import { AccountInfo } from '@azure/msal-node';
 import { IMsalConfig } from '../main/authProvider/authProvider';
 import {
     IIotCentralApp,
-    IIotCentralDevice
+    IIotCentralDevice,
+    IIotCentralModule
 } from '../main/models/iotCentral';
 import {
     Endpoint
 } from '../main/models/industrialConnect';
 
 // Main
-const Ipc_Log = 'ipc_log';
-const Ipc_OpenConfiguration = 'ipc_openConfiguration';
-const Ipc_OpenLink = 'ipc_openLink';
+const Ipc_Log = 'Ipc_Log';
+const Ipc_OpenConfiguration = 'Ipc_OpenConfiguration';
+const Ipc_OpenLink = 'Ipc_OpenLink';
 
 // Auth
-const Ipc_GetLastOAuthError = 'ipc_getLastOAuthError';
-const Ipc_SetLastOAuthError = 'ipc_setLastOAuthError';
-const Ipc_SetMsalConfig = 'ipc_setMsalConfig';
-const Ipc_GetMsalConfig = 'ipc_getMsalConfig';
-const Ipc_Signin = 'ipc_signin';
-const Ipc_Signout = 'ipc_signout';
+const Ipc_GetLastOAuthError = 'Ipc_GetLastOAuthError';
+const Ipc_SetLastOAuthError = 'Ipc_SetLastOAuthError';
+const Ipc_SetMsalConfig = 'Ipc_SetMsalConfig';
+const Ipc_GetMsalConfig = 'Ipc_GetMsalConfig';
+const Ipc_Signin = 'Ipc_Signin';
+const Ipc_Signout = 'Ipc_Signout';
 const Ipc_GetAccount = 'Ipc_GetAccount';
-const Ipc_GetProfile = 'ipc_getProfile';
+const Ipc_GetProfile = 'Ipc_GetProfile';
 
 // IoT Central
-const Ipc_RequestApi = 'ipc_requestApi';
-const Ipc_GetIotcApps = 'ipc_getIotcApps';
-const Ipc_GetIotcDevices = 'ipc_getIotcDevices';
-const Ipc_TestIndustrialConnectEndpoint = 'ipc_testIndustrialConnectEndpoint';
+const Ipc_RequestApi = 'Ipc_RequestApi';
+const Ipc_GetIotcApps = 'Ipc_GetIotcApps';
+const Ipc_GetIotcDevices = 'Ipc_GetIotcDevices';
+const Ipc_GetIotcDeviceModules = 'Ipc_GetIotcDeviceModules';
+
+// Industrial Connect
+const Ipc_TestIndustrialConnectEndpoint = 'Ipc_TestIndustrialConnectEndpoint';
 
 declare global {
     interface Window {
@@ -51,6 +55,9 @@ declare global {
             [Ipc_RequestApi]: (config: any) => Promise<any>;
             [Ipc_GetIotcApps]: () => Promise<IIotCentralApp[]>;
             [Ipc_GetIotcDevices]: (appSubDomain: string) => Promise<IIotCentralDevice[]>;
+            [Ipc_GetIotcDeviceModules]: (appSubdomain: string, deviceId: string) => Promise<IIotCentralModule[]>;
+
+            // Industrial Connect
             [Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint: Endpoint, appSubdomain: string, gatewayId: string) => Promise<boolean>;
         };
     }
@@ -71,5 +78,6 @@ export {
     Ipc_RequestApi,
     Ipc_GetIotcApps,
     Ipc_GetIotcDevices,
+    Ipc_GetIotcDeviceModules,
     Ipc_TestIndustrialConnectEndpoint
 };

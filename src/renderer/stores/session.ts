@@ -5,7 +5,6 @@ import {
 import * as contextBridgeTypes from '../../main/contextBridgeTypes';
 import { AccountInfo } from '@azure/msal-node';
 import { AppNavigationPaths } from '../App';
-// import store, { StoreKeys } from '../../main/store';
 
 export enum AuthenticationState {
     Authenticated = 'Authenticated',
@@ -32,16 +31,16 @@ export class SessionStore {
         return process.env.NODE_ENV === 'production';
     }
 
+    public async openConfiguration(): Promise<any> {
+        return window.ipcApi[contextBridgeTypes.Ipc_GetMsalConfig]();
+    }
+
     public getLastOAuthError(): Promise<string> {
         return window.ipcApi[contextBridgeTypes.Ipc_GetLastOAuthError]();
     }
 
     public setLastOAuthError(message: string): Promise<void> {
         return window.ipcApi[contextBridgeTypes.Ipc_SetLastOAuthError](message);
-    }
-
-    public async openConfiguration(): Promise<any> {
-        return window.ipcApi[contextBridgeTypes.Ipc_GetMsalConfig]();
     }
 
     public async setMsalConfig(msalConfig: IMsalConfig): Promise<void> {

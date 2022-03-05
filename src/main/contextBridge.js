@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /* eslint-disable @typescript-eslint/no-var-requires */
 const { contextBridge, ipcRenderer } = require('electron');
 const contextBridgeTypes = require('./contextBridgeTypes.ts');
@@ -22,6 +23,6 @@ contextBridge.exposeInMainWorld('ipcApi', {
     [contextBridgeTypes.Ipc_RequestApi]: (config) => ipcRenderer.invoke(contextBridgeTypes.Ipc_RequestApi, config),
     [contextBridgeTypes.Ipc_GetIotcApps]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcApps),
     [contextBridgeTypes.Ipc_GetIotcDevices]: (appSubdomain) => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcDevices, appSubdomain),
-    // eslint-disable-next-line max-len
+    [contextBridgeTypes.Ipc_GetIotcDeviceModules]: (appSubdomain, deviceId) => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcDeviceModules, appSubdomain, deviceId),
     [contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint, appSubdomain, gatewayId) => ipcRenderer.invoke(contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint, opcEndpoint, appSubdomain, gatewayId)
 });

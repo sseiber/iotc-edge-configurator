@@ -1,7 +1,7 @@
 import React, { FC } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useAsyncEffect } from 'use-async-effect';
-import { Dimmer, Grid, Loader, Message } from 'semantic-ui-react';
+import { Button, Dimmer, Grid, Loader, Message } from 'semantic-ui-react';
 import { useStore } from '../../stores/store';
 import { useInfoDialog, showInfoDialog } from '../../components/InfoDialogContext';
 import IotCentralPanel from './IotCentralPanel';
@@ -15,7 +15,7 @@ const IoTCentralPage: FC = observer(() => {
 
     useAsyncEffect(async isMounted => {
         try {
-            await iotCentralStore.getIotCentralApps();
+            await iotCentralStore.getIotCentralApps(false);
 
             if (!isMounted()) {
                 return;
@@ -31,6 +31,10 @@ const IoTCentralPage: FC = observer(() => {
         }
     }, []);
 
+    const onRefresh = () => {
+        void iotCentralStore.getIotCentralApps(true);
+    };
+
     return (
         <Grid style={{ padding: '5em 5em' }}>
             <Grid.Row>
@@ -43,8 +47,13 @@ const IoTCentralPage: FC = observer(() => {
                     </Dimmer>
                     <IotCentralPanel
                         userDisplayName={sessionStore.displayName}
-                        iotCentralApps={iotCentralStore.iotcApps}
+                        iotCentralApps={iotCentralStore.apps}
                     />
+                </Grid.Column>
+            </Grid.Row>
+            <Grid.Row>
+                <Grid.Column>
+                    <Button color={'green'} floated={'left'} onClick={onRefresh}>Refesh list</Button>
                 </Grid.Column>
             </Grid.Row>
         </Grid>

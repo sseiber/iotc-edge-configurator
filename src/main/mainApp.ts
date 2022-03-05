@@ -21,7 +21,8 @@ import {
 import {
     IoTCentralBaseDomain,
     IIotCentralApp,
-    IIotCentralDevice
+    IIotCentralDevice,
+    IIotCentralModule
 } from '../main/models/iotCentral';
 import {
     IndustrialConnectModuleName,
@@ -269,31 +270,46 @@ export class MainApp {
         ipcMain.handle(contextBridgeTypes.Ipc_GetIotcApps, async (_event: IpcMainInvokeEvent): Promise<IIotCentralApp[]> => {
             logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetIotcApps} handler`);
 
-            let iotcApps: IIotCentralApp[] = [];
+            let apps: IIotCentralApp[] = [];
 
             try {
-                iotcApps = await this.getIotCentralApps();
+                apps = await this.getIotCentralApps();
             }
             catch (ex) {
                 logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetIotcApps} handler: ${ex.message}`);
             }
 
-            return iotcApps;
+            return apps;
         });
 
         ipcMain.handle(contextBridgeTypes.Ipc_GetIotcDevices, async (_event: IpcMainInvokeEvent, appSubdomain: string): Promise<IIotCentralDevice[]> => {
             logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetIotcDevices} handler`);
 
-            let iotcDevices: IIotCentralDevice[] = [];
+            let devices: IIotCentralDevice[] = [];
 
             try {
-                iotcDevices = await this.getIotCentralDevices(appSubdomain);
+                devices = await this.getIotCentralDevices(appSubdomain);
             }
             catch (ex) {
                 logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetIotcDevices} handler: ${ex.message}`);
             }
 
-            return iotcDevices;
+            return devices;
+        });
+
+        ipcMain.handle(contextBridgeTypes.Ipc_GetIotcDeviceModules, async (_event: IpcMainInvokeEvent, appSubdomain: string, deviceId: string): Promise<IIotCentralModule[]> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetIotcDeviceModules} handler`);
+
+            let modules: IIotCentralModule[] = [];
+
+            try {
+                modules = await this.getIotCentralDeviceModules(appSubdomain, deviceId);
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetIotcDeviceModules} handler: ${ex.message}`);
+            }
+
+            return modules;
         });
 
         // eslint-disable-next-line max-len
@@ -333,7 +349,7 @@ export class MainApp {
     private async getIotCentralApps(): Promise<IIotCentralApp[]> {
         logger.log([ModuleName, 'info'], `getIotCentralApps`);
 
-        let iotcApps: IIotCentralApp[] = [];
+        let apps: IIotCentralApp[] = [];
 
         try {
             const accessToken = await this.authProvider.getScopedToken(AzureManagementScope);
@@ -347,7 +363,7 @@ export class MainApp {
 
             const response = await requestApi(config);
             if (response) {
-                iotcApps = (response?.payload?.value || []).reduce((result: any[], iotcApp: any) => {
+                apps = (response?.payload?.value || []).reduce((result: IIotCentralApp[], iotcApp: any): IIotCentralApp[] => {
                     if (iotcApp.tags?.integrationType === 'industrial-connect') {
                         return result.concat({
                             id: iotcApp.id,
@@ -369,13 +385,13 @@ export class MainApp {
             logger.log([ModuleName, 'error'], `Error during getIotCentralApps: ${ex.message}`);
         }
 
-        return iotcApps;
+        return apps;
     }
 
     private async getIotCentralDevices(appSubdomain: string): Promise<IIotCentralDevice[]> {
         logger.log([ModuleName, 'info'], `getIotCentralDevices`);
 
-        let iotcDevices: IIotCentralDevice[] = [];
+        let devices: IIotCentralDevice[] = [];
 
         try {
             const accessToken = await this.authProvider.getScopedToken(IoTCentralApiScope);
@@ -388,23 +404,58 @@ export class MainApp {
             };
 
             const response = await requestApi(config);
-            if (response) {
-                iotcDevices = (response?.payload?.value || []).map((element: any) => {
+            if (response && response.status === 200) {
+                devices = (response?.payload?.value || []).map((device: IIotCentralDevice): IIotCentralDevice => {
                     return {
-                        id: element.id,
-                        displayName: element.displayName
+                        id: device.id,
+                        displayName: device.displayName
                     };
                 });
             }
             else {
-                logger.log([ModuleName, 'error'], `Error during getIotCentralDevices`);
+                logger.log([ModuleName, 'error'], `Error: status: ${response.status}`);
             }
         }
         catch (ex) {
             logger.log([ModuleName, 'error'], `Error during getIotCentralDevices: ${ex.message}`);
         }
 
-        return iotcDevices;
+        return devices;
+    }
+
+    private async getIotCentralDeviceModules(appSubdomain: string, deviceId: string): Promise<IIotCentralModule[]> {
+        logger.log([ModuleName, 'info'], `getIotCentralDevices`);
+
+        let modules: IIotCentralModule[] = [];
+
+        try {
+            const accessToken = await this.authProvider.getScopedToken(IoTCentralApiScope);
+            const config = {
+                method: 'get',
+                url: `https://${appSubdomain}.${IoTCentralBaseDomain}/api/devices/${deviceId}/modules?api-version=1.1-preview`,
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            };
+
+            const response = await requestApi(config);
+            if (response && response.status === 200) {
+                modules = (response?.payload?.value || []).map((module: IIotCentralModule): IIotCentralModule => {
+                    return {
+                        name: module.name,
+                        displayName: module.displayName
+                    };
+                });
+            }
+            else {
+                logger.log([ModuleName, 'error'], `Error: status: ${response.status}`);
+            }
+        }
+        catch (ex) {
+            logger.log([ModuleName, 'error'], `Error during getIotCentralDeviceModules: ${ex.message}`);
+        }
+
+        return modules;
     }
 
     private async testIndustrialConnectEndpoint(opcEndpoint: Endpoint, appSubdomain: string, gatewayId: string): Promise<boolean> {
@@ -417,7 +468,7 @@ export class MainApp {
             const config = {
                 method: 'post',
                 // eslint-disable-next-line max-len
-                uxl: `https://${appSubdomain}.${IoTCentralBaseDomain}/api/devices/${gatewayId}/modules/${IndustrialConnectModuleName}/commands/${IndustrialConnectCommands.TestConnection}?api-version=1.1-preview`,
+                url: `https://${appSubdomain}.${IoTCentralBaseDomain}/api/devices/${gatewayId}/modules/${IndustrialConnectModuleName}/commands/${IndustrialConnectCommands.TestConnection}?api-version=1.1-preview`,
                 headers: {
                     Authorization: `Bearer ${accessToken}`
                 },
@@ -431,11 +482,11 @@ export class MainApp {
             };
 
             const response = await requestApi(config);
-            if (response && response.status === 200) {
+            if (response && response.status === 201 && response.payload?.responseCode === 200) {
                 connectionGood = true;
             }
             else {
-                logger.log([ModuleName, 'error'], `Error during testIndustrialConnectEndpoint`);
+                logger.log([ModuleName, 'error'], `Error: status: ${response.status}, payload responseCode: ${response.payload?.responseCode}`);
             }
         }
         catch (ex) {

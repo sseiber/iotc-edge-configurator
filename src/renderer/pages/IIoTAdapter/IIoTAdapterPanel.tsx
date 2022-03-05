@@ -21,7 +21,7 @@ const IIoTAdapterPanel: FC<IIoTAdapterPanelProps> = (props: IIoTAdapterPanelProp
                     <Header attached="top" as="h3" color={'blue'}>{`Devices`}</Header>
                     <Segment attached="bottom">
                         {
-                            devices.length > 0
+                            (devices?.length || 0) > 0
                                 ? (
                                     <Item.Group divided>
                                         {

@@ -2,7 +2,7 @@ import React, { FC } from 'react';
 import { useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { useAsyncEffect } from 'use-async-effect';
-import { Dimmer, Grid, Label, Loader, Message } from 'semantic-ui-react';
+import { Button, Dimmer, Grid, Label, Loader, Message } from 'semantic-ui-react';
 import { useStore } from '../../stores/store';
 import { useInfoDialog, showInfoDialog } from '../../components/InfoDialogContext';
 import IIoTAdapterPanel from './IIoTAdapterPanel';
@@ -21,7 +21,7 @@ const IIoTAdapterPage: FC = observer(() => {
 
     useAsyncEffect(async isMounted => {
         try {
-            await iotCentralStore.getIotCentralDevices(appSubdomain);
+            await iotCentralStore.getIotCentralDevices(appId, appSubdomain, false);
 
             if (!isMounted()) {
                 return;
@@ -36,6 +36,10 @@ const IIoTAdapterPage: FC = observer(() => {
             });
         }
     }, []);
+
+    const onRefresh = () => {
+        void iotCentralStore.getIotCentralDevices(appId, appSubdomain, true);
+    };
 
     return (
         <Grid style={{ padding: '5em 5em' }}>
@@ -65,8 +69,13 @@ const IIoTAdapterPage: FC = observer(() => {
                     </Dimmer>
                     <IIoTAdapterPanel
                         appSubdomain={appSubdomain}
-                        devices={iotCentralStore.iotcDevices}
+                        devices={iotCentralStore.mapAppDevices.get(appId)}
                     />
+                </Grid.Column>
+            </Grid.Row>
+            <Grid.Row>
+                <Grid.Column>
+                    <Button color={'green'} floated={'left'} onClick={onRefresh}>Refesh list</Button>
                 </Grid.Column>
             </Grid.Row>
         </Grid>

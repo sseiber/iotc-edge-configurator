@@ -13,3 +13,8 @@ export interface IIotCentralDevice {
     id: string;
     displayName: string;
 }
+
+export interface IIotCentralModule {
+    name: string;
+    displayName: string;
+}
