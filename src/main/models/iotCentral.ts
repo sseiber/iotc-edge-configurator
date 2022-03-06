@@ -10,11 +10,13 @@ export interface IIotCentralApp {
 }
 
 export interface IIotCentralDevice {
+    appId: string;
     id: string;
     displayName: string;
 }
 
 export interface IIotCentralModule {
+    deviceId: string;
     name: string;
     displayName: string;
 }

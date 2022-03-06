@@ -39,21 +39,21 @@ const IoTCentralPage: FC = observer(() => {
         <Grid style={{ padding: '5em 5em' }}>
             <Grid.Row>
                 <Grid.Column>
-                    <Message size="huge">
-                        <Message.Header>Azure IoT Central Solution Builder</Message.Header>
+                    <Message size={'large'}>
+                        <Message.Header>Azure IoT Solution Builder</Message.Header>
                     </Message>
                     <Dimmer active={iotCentralStore.waitingOnApiCall} inverted>
                         <Loader>Pending...</Loader>
                     </Dimmer>
                     <IotCentralPanel
                         userDisplayName={sessionStore.displayName}
-                        iotCentralApps={iotCentralStore.apps}
+                        mapApps={iotCentralStore.mapApps}
                     />
                 </Grid.Column>
             </Grid.Row>
             <Grid.Row>
                 <Grid.Column>
-                    <Button color={'green'} floated={'left'} onClick={onRefresh}>Refesh list</Button>
+                    <Button size={'tiny'} color={'green'} floated={'left'} onClick={onRefresh}>Refesh list</Button>
                 </Grid.Column>
             </Grid.Row>
         </Grid>

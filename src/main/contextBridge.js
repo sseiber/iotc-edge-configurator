@@ -22,7 +22,7 @@ contextBridge.exposeInMainWorld('ipcApi', {
     // IoT Central
     [contextBridgeTypes.Ipc_RequestApi]: (config) => ipcRenderer.invoke(contextBridgeTypes.Ipc_RequestApi, config),
     [contextBridgeTypes.Ipc_GetIotcApps]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcApps),
-    [contextBridgeTypes.Ipc_GetIotcDevices]: (appSubdomain) => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcDevices, appSubdomain),
+    [contextBridgeTypes.Ipc_GetIotcDevices]: (appSubdomain, appId) => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcDevices, appSubdomain, appId),
     [contextBridgeTypes.Ipc_GetIotcDeviceModules]: (appSubdomain, deviceId) => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcDeviceModules, appSubdomain, deviceId),
-    [contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint, appSubdomain, gatewayId) => ipcRenderer.invoke(contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint, opcEndpoint, appSubdomain, gatewayId)
+    [contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint, appSubdomain, deviceId, moduleName) => ipcRenderer.invoke(contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint, opcEndpoint, appSubdomain, deviceId, moduleName)
 });

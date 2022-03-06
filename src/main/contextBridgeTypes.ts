@@ -54,11 +54,11 @@ declare global {
             // IoT Central
             [Ipc_RequestApi]: (config: any) => Promise<any>;
             [Ipc_GetIotcApps]: () => Promise<IIotCentralApp[]>;
-            [Ipc_GetIotcDevices]: (appSubDomain: string) => Promise<IIotCentralDevice[]>;
+            [Ipc_GetIotcDevices]: (appSubDomain: string, appId: string) => Promise<IIotCentralDevice[]>;
             [Ipc_GetIotcDeviceModules]: (appSubdomain: string, deviceId: string) => Promise<IIotCentralModule[]>;
 
             // Industrial Connect
-            [Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint: Endpoint, appSubdomain: string, gatewayId: string) => Promise<boolean>;
+            [Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint: Endpoint, appSubdomain: string, deviceId: string, moduleName: string) => Promise<boolean>;
         };
     }
 }

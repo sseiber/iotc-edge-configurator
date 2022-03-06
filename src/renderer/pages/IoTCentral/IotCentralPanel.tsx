@@ -1,16 +1,17 @@
 import React, { FC } from 'react';
+import { observer } from 'mobx-react-lite';
 import { Grid, Segment, Header, Message, Item } from 'semantic-ui-react';
 import { IIotCentralApp } from '../../../main/models/iotCentral';
 import IotCentralPanelListItem from './IotCentralPanelListItem';
 
 interface IIotCentralPanelProps {
     userDisplayName: string;
-    iotCentralApps: IIotCentralApp[];
+    mapApps: Map<string, IIotCentralApp>;
 }
 
-const IotCentralPanel: FC<IIotCentralPanelProps> = (props: IIotCentralPanelProps) => {
+const IotCentralPanel: FC<IIotCentralPanelProps> = observer((props: IIotCentralPanelProps) => {
     const {
-        iotCentralApps
+        mapApps
     } = props;
 
     return (
@@ -20,11 +21,11 @@ const IotCentralPanel: FC<IIotCentralPanelProps> = (props: IIotCentralPanelProps
                     <Header attached="top" as="h3" color={'blue'}>{`Industrial Connector apps`}</Header>
                     <Segment attached="bottom">
                         {
-                            iotCentralApps.length > 0
+                            mapApps.size > 0
                                 ? (
                                     <Item.Group divided>
                                         {
-                                            iotCentralApps.map((app) => {
+                                            [...mapApps.values()].map((app: IIotCentralApp) => {
                                                 return (
                                                     <IotCentralPanelListItem
                                                         key={app.id}
@@ -49,6 +50,6 @@ const IotCentralPanel: FC<IIotCentralPanelProps> = (props: IIotCentralPanelProps
             </Grid.Row>
         </Grid>
     );
-};
+});
 
 export default IotCentralPanel;

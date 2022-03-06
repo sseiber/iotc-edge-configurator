@@ -37,9 +37,9 @@ const HomePage: FC = observer(() => {
         <Grid style={{ padding: '5em 5em' }}>
             <Grid.Row>
                 <Grid.Column>
-                    <Message size="huge">
+                    <Message size={'large'}>
                         <Message.Header>Azure</Message.Header>
-                        <p>IoT Central Solution Builder</p>
+                        <p>IoT Solution Builder</p>
                     </Message>
                     {
                         sessionStore.authenticationState !== AuthenticationState.Authenticated

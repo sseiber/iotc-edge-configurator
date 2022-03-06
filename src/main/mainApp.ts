@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import {
     app as electronApp,
     shell,
@@ -25,7 +26,6 @@ import {
     IIotCentralModule
 } from '../main/models/iotCentral';
 import {
-    IndustrialConnectModuleName,
     IndustrialConnectCommands,
     Endpoint
 } from '../main/models/industrialConnect';
@@ -282,13 +282,13 @@ export class MainApp {
             return apps;
         });
 
-        ipcMain.handle(contextBridgeTypes.Ipc_GetIotcDevices, async (_event: IpcMainInvokeEvent, appSubdomain: string): Promise<IIotCentralDevice[]> => {
+        ipcMain.handle(contextBridgeTypes.Ipc_GetIotcDevices, async (_event: IpcMainInvokeEvent, appSubdomain: string, appId: string): Promise<IIotCentralDevice[]> => {
             logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetIotcDevices} handler`);
 
             let devices: IIotCentralDevice[] = [];
 
             try {
-                devices = await this.getIotCentralDevices(appSubdomain);
+                devices = await this.getIotCentralDevices(appSubdomain, appId);
             }
             catch (ex) {
                 logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetIotcDevices} handler: ${ex.message}`);
@@ -312,14 +312,13 @@ export class MainApp {
             return modules;
         });
 
-        // eslint-disable-next-line max-len
-        ipcMain.handle(contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint, async (_event: IpcMainInvokeEvent, opcEndpoint: Endpoint, appSubdomain: string, gatewayId: string): Promise<boolean> => {
+        ipcMain.handle(contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint, async (_event: IpcMainInvokeEvent, opcEndpoint: Endpoint, appSubdomain: string, deviceId: string, moduleName: string): Promise<boolean> => {
             logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint} handler`);
 
             let connectionGood;
 
             try {
-                connectionGood = await this.testIndustrialConnectEndpoint(opcEndpoint, appSubdomain, gatewayId);
+                connectionGood = await this.testIndustrialConnectEndpoint(opcEndpoint, appSubdomain, deviceId, moduleName);
             }
             catch (ex) {
                 logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint} handler: ${ex.message}`);
@@ -366,7 +365,7 @@ export class MainApp {
                 apps = (response?.payload?.value || []).reduce((result: IIotCentralApp[], iotcApp: any): IIotCentralApp[] => {
                     if (iotcApp.tags?.integrationType === 'industrial-connect') {
                         return result.concat({
-                            id: iotcApp.id,
+                            id: iotcApp.applicationId,
                             name: iotcApp.name,
                             location: iotcApp.location,
                             applicationId: iotcApp.properties.applicationId,
@@ -388,7 +387,7 @@ export class MainApp {
         return apps;
     }
 
-    private async getIotCentralDevices(appSubdomain: string): Promise<IIotCentralDevice[]> {
+    private async getIotCentralDevices(appSubdomain: string, appId: string): Promise<IIotCentralDevice[]> {
         logger.log([ModuleName, 'info'], `getIotCentralDevices`);
 
         let devices: IIotCentralDevice[] = [];
@@ -407,6 +406,7 @@ export class MainApp {
             if (response && response.status === 200) {
                 devices = (response?.payload?.value || []).map((device: IIotCentralDevice): IIotCentralDevice => {
                     return {
+                        appId,
                         id: device.id,
                         displayName: device.displayName
                     };
@@ -442,6 +442,7 @@ export class MainApp {
             if (response && response.status === 200) {
                 modules = (response?.payload?.value || []).map((module: IIotCentralModule): IIotCentralModule => {
                     return {
+                        deviceId,
                         name: module.name,
                         displayName: module.displayName
                     };
@@ -458,7 +459,7 @@ export class MainApp {
         return modules;
     }
 
-    private async testIndustrialConnectEndpoint(opcEndpoint: Endpoint, appSubdomain: string, gatewayId: string): Promise<boolean> {
+    private async testIndustrialConnectEndpoint(opcEndpoint: Endpoint, appSubdomain: string, deviceId: string, moduleName: string): Promise<boolean> {
         logger.log([ModuleName, 'info'], `testIndustrialConnectEndpoint`);
 
         let connectionGood = false;
@@ -468,7 +469,7 @@ export class MainApp {
             const config = {
                 method: 'post',
                 // eslint-disable-next-line max-len
-                url: `https://${appSubdomain}.${IoTCentralBaseDomain}/api/devices/${gatewayId}/modules/${IndustrialConnectModuleName}/commands/${IndustrialConnectCommands.TestConnection}?api-version=1.1-preview`,
+                url: `https://${appSubdomain}.${IoTCentralBaseDomain}/api/devices/${deviceId}/modules/${moduleName}/commands/${IndustrialConnectCommands.TestConnection}?api-version=1.1-preview`,
                 headers: {
                     Authorization: `Bearer ${accessToken}`
                 },

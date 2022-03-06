@@ -112,7 +112,7 @@ const AzureConfigPage: FC = observer(() => {
         <Grid style={{ padding: '5em 5em' }}>
             <Grid.Row>
                 <Grid.Column>
-                    <Message size="huge">
+                    <Message size={'large'}>
                         <Message.Header>Azure Resource Credentials</Message.Header>
                     </Message>
                     <Form>
@@ -170,8 +170,8 @@ const AzureConfigPage: FC = observer(() => {
             </Grid.Row>
             <Grid.Row>
                 <Grid.Column>
-                    <Button onClick={onCancel}>Cancel</Button>
-                    <Button color={'green'} onClick={onOk}>OK</Button>
+                    <Button size={'tiny'} onClick={onCancel}>Cancel</Button>
+                    <Button size={'tiny'} color={'green'} onClick={onOk}>OK</Button>
                 </Grid.Column>
             </Grid.Row>
         </Grid>

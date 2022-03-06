@@ -2,7 +2,7 @@
     "name": "iotc-solution-builder",
     "productName": "iotc-solution-builder",
     "version": "1.0.0",
-    "description": "Azure IoT Central Solution Builder",
+    "description": "Azure IoT Solution Builder",
     "main": ".webpack/main",
     "scripts": {
         "start": "cross-env NODE_ENV=development electron-forge start",

@@ -1,14 +1,14 @@
 import React, { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Item, Label } from 'semantic-ui-react';
+import { Button, Item } from 'semantic-ui-react';
 import { AppNavigationPaths } from '../../App';
 
-interface IIoTPanelListItemProps {
+interface IIoTAdapterPanelListItemProps {
     appSubdomain: string;
     deviceName: string;
     deviceId: string;
 }
-const IIoTPanelListItem: FC<IIoTPanelListItemProps> = (props: IIoTPanelListItemProps) => {
+const IIoTAdapterPanelListItem: FC<IIoTAdapterPanelListItemProps> = (props: IIoTAdapterPanelListItemProps) => {
     const {
         appSubdomain,
         deviceName,
@@ -33,19 +33,15 @@ const IIoTPanelListItem: FC<IIoTPanelListItemProps> = (props: IIoTPanelListItemP
                 style={{ width: '32px', height: 'auto' }}
                 src={'./assets/iotedge.png'}
             />
-
             <Item.Content>
                 <Item.Header>{deviceName}</Item.Header>
                 <Item.Extra>
-                    <Label size={'tiny'} basic color={'grey'}>
-                        Id:
-                        <Label.Detail>{deviceId}</Label.Detail>
-                    </Label>
-                    <Button primary floated="right" size="small" onClick={onConfigure}>Configure</Button>
+                    <b>Id: </b>{deviceId}
+                    <Button size={'tiny'} primary floated="right" onClick={onConfigure}>Configure</Button>
                 </Item.Extra>
             </Item.Content>
         </Item>
     );
 };
 
-export default IIoTPanelListItem;
+export default IIoTAdapterPanelListItem;

@@ -21,6 +21,8 @@ export async function requestApi(config: any): Promise<any> {
         if (axiosResponse.data) {
             response.payload = axiosResponse.data;
         }
+
+        logger.log([ModuleName, 'info'], `requestApi: status: ${response.status}`);
     }
     catch (ex) {
         if (ex.isAxiosError && ex.response) {

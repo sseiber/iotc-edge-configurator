@@ -1,4 +1,3 @@
-export const IndustrialConnectModuleName = 'ompadapter';
 export enum IndustrialConnectCommands {
     TestConnection = 'TestConnection_v1'
 }

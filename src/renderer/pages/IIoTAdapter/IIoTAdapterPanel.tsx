@@ -1,7 +1,7 @@
 import React, { FC } from 'react';
 import { Grid, Segment, Header, Message, Item } from 'semantic-ui-react';
 import { IIotCentralDevice } from '../../../main/models/iotCentral';
-import IIoTAdapterPanelListItem from './IIoTPanelListItem';
+import IIoTAdapterPanelListItem from './IIoTAdapterPanelListItem';
 
 interface IIoTAdapterPanelProps {
     appSubdomain: string;
@@ -18,7 +18,7 @@ const IIoTAdapterPanel: FC<IIoTAdapterPanelProps> = (props: IIoTAdapterPanelProp
         <Grid>
             <Grid.Row>
                 <Grid.Column>
-                    <Header attached="top" as="h3" color={'blue'}>{`Devices`}</Header>
+                    <Header attached="top" as="h4" color={'blue'}>{`Devices`}</Header>
                     <Segment attached="bottom">
                         {
                             (devices?.length || 0) > 0

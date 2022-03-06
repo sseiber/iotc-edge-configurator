@@ -15,8 +15,9 @@ export class IotCentralStore {
     }
 
     public waitingOnApiCall = false;
-    public apps: IIotCentralApp[] = [];
+    public mapApps: Map<string, IIotCentralApp> = new Map<string, IIotCentralApp>();
     public mapAppDevices: Map<string, IIotCentralDevice[]> = new Map<string, IIotCentralDevice[]>();
+    public mapDeviceApp: Map<string, IIotCentralApp> = new Map<string, IIotCentralApp>();
     public mapDeviceModules: Map<string, IIotCentralModule[]> = new Map<string, IIotCentralModule[]>();
     public connectionGood = false;
 
@@ -32,14 +33,21 @@ export class IotCentralStore {
         });
 
         try {
-            if (!refresh && this.apps?.length) {
+            if (!refresh && this.mapApps.size > 0) {
                 return;
             }
 
             const apps = await window.ipcApi[contextBridgeTypes.Ipc_GetIotcApps]();
             if (apps) {
                 runInAction(() => {
-                    this.apps = apps;
+                    this.mapApps.clear();
+                    this.mapAppDevices.clear();
+                    this.mapDeviceApp.clear();
+                    this.mapDeviceModules.clear();
+
+                    for (const app of apps) {
+                        this.mapApps.set(app.applicationId, app);
+                    }
                 });
             }
         }
@@ -55,7 +63,7 @@ export class IotCentralStore {
         }
     }
 
-    public async getIotCentralDevices(appId: string, appSubdomain: string, refresh: boolean): Promise<void> {
+    public async getIotCentralDevices(appId: string, refresh: boolean): Promise<void> {
         runInAction(() => {
             this.waitingOnApiCall = true;
         });
@@ -65,10 +73,19 @@ export class IotCentralStore {
                 return;
             }
 
-            const devices = await window.ipcApi[contextBridgeTypes.Ipc_GetIotcDevices](appSubdomain);
+            const appSubdomain = this.mapApps.get(appId).subdomain;
+            const devices = await window.ipcApi[contextBridgeTypes.Ipc_GetIotcDevices](appSubdomain, appId);
             if (devices) {
                 runInAction(() => {
+                    this.mapAppDevices.clear();
+                    this.mapDeviceApp.clear();
+                    this.mapDeviceModules.clear();
+
                     this.mapAppDevices.set(appId, devices);
+
+                    for (const device of devices) {
+                        this.mapDeviceApp.set(device.id, this.mapApps.get(appId));
+                    }
                 });
             }
         }
@@ -84,15 +101,22 @@ export class IotCentralStore {
         }
     }
 
-    public async getDeviceModules(appSubdomain: string, deviceId: string): Promise<void> {
+    public async getDeviceModules(deviceId: string): Promise<void> {
         runInAction(() => {
             this.waitingOnApiCall = true;
         });
 
         try {
+            if (this.mapDeviceModules.size > 0) {
+                return;
+            }
+
+            const appSubdomain = this.mapDeviceApp.get(deviceId).subdomain;
             const modules = await window.ipcApi[contextBridgeTypes.Ipc_GetIotcDeviceModules](appSubdomain, deviceId);
             if (modules) {
                 runInAction(() => {
+                    this.mapDeviceModules.clear();
+
                     this.mapDeviceModules.set(deviceId, modules);
                 });
             }
@@ -109,13 +133,14 @@ export class IotCentralStore {
         }
     }
 
-    public async testIndustrialConnectEndpoint(opcEndpoint: Endpoint, appSubdomain: string, gatewayId: string): Promise<void> {
+    public async testIndustrialConnectEndpoint(opcEndpoint: Endpoint, appSubdomain: string, deviceId: string): Promise<void> {
         runInAction(() => {
             this.waitingOnApiCall = true;
         });
 
         try {
-            const connectionGood = await window.ipcApi[contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint](opcEndpoint, appSubdomain, gatewayId);
+            const moduleName = this.mapDeviceModules.get(deviceId)[0].name;
+            const connectionGood = await window.ipcApi[contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint](opcEndpoint, appSubdomain, deviceId, moduleName);
             runInAction(() => {
                 this.connectionGood = connectionGood;
             });

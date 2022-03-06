@@ -1,6 +1,6 @@
 import React, { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Item, Label } from 'semantic-ui-react';
+import { Button, Item } from 'semantic-ui-react';
 import { AppNavigationPaths } from '../../App';
 import {
     IoTCentralBaseDomain
@@ -47,26 +47,14 @@ const IotCentralPanelListItem: FC<IIotCentralPanelListItemProps> = (props: IIotC
                 style={{ width: '48px', height: 'auto' }}
                 src={'./assets/icons/64x64.png'}
             />
-
             <Item.Content>
                 <Item.Header>{appName}</Item.Header>
                 <Item.Extra>
-                    <Label size={'tiny'} basic color={'grey'}>
-                        Id:
-                        <Label.Detail>{appId}</Label.Detail>
-                    </Label>
-                    <br />
-                    <Label size={'tiny'} basic color={'grey'}>
-                        Subdomain:
-                        <Label.Detail>{appSubdomain}</Label.Detail>
-                    </Label>
-                    <br />
-                    <Label size={'tiny'} basic color={'grey'}>
-                        Location:
-                        <Label.Detail>{appLocation}</Label.Detail>
-                    </Label>
-                    <Button primary floated="right" size="small" onClick={() => openBrowser(appSubdomain)}>Go to app</Button>
-                    <Button primary floated="right" size="small" onClick={navigateToIotcAppPage}>Manage app</Button>
+                    <b>Id: </b>{appId}<br />
+                    <b>Subdomain: </b>{appSubdomain}<br />
+                    <b>Location: </b>{appLocation}
+                    <Button size={'tiny'} primary floated="right" onClick={() => openBrowser(appSubdomain)}>Go to app</Button>
+                    <Button size={'tiny'} primary floated="right" onClick={navigateToIotcAppPage}>Manage app</Button>
                 </Item.Extra>
             </Item.Content>
         </Item>

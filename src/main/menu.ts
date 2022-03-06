@@ -50,17 +50,17 @@ export default class MenuBuilder {
 
     private buildDarwinTemplate(): MenuItemConstructorOptions[] {
         const subMenuAbout: DarwinMenuItemConstructorOptions = {
-            label: 'Electron',
+            label: 'IoT Solution Builder',
             submenu: [
                 {
-                    label: 'About IoT Central Solution Builder',
+                    label: 'About IoT Solution Builder',
                     selector: 'orderFrontStandardAboutPanel:'
                 },
                 { type: 'separator' },
                 { label: 'Services', submenu: [] },
                 { type: 'separator' },
                 {
-                    label: 'Hide IoT Central Solution Builder',
+                    label: 'Hide IoT Solution Builder',
                     accelerator: 'Command+H',
                     selector: 'hide:'
                 },
