@@ -1,4 +1,4 @@
-import logger from '../logger';
+import logger from '../../logger';
 import { AuthorizationCodeListener } from './authorizationCodeListener';
 import { protocol } from 'electron';
 import * as path from 'path';

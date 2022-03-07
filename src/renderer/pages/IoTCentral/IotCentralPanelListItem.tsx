@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Item } from 'semantic-ui-react';
 import { AppNavigationPaths } from '../../App';
 import {
-    IoTCentralBaseDomain
-} from '../../../main/models/iotCentral';
-import {
     Ipc_OpenLink
 } from '../../../main/contextBridgeTypes';
+import {
+    IoTCentralBaseDomain
+} from '../../../main/models/iotCentral';
 
 
 interface IIotCentralPanelListItemProps {

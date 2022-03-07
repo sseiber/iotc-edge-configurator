@@ -8,7 +8,13 @@ import { useInfoDialog, showInfoDialog } from '../../components/InfoDialogContex
 import {
     SecurityMode,
     EndpointCredentialType,
-    Endpoint
+    IEndpoint,
+    OpcNodeClass,
+    OpcAttribute,
+    IBrowseNodesRequest
+    // ITestConnectionConfig,
+    // IBrowseNodesConfig,
+    // IAdapterConfiguration
 } from '../../../main/models/industrialConnect';
 
 const ConfigAdapterPage: FC = observer(() => {
@@ -18,11 +24,15 @@ const ConfigAdapterPage: FC = observer(() => {
         iotCentralStore
     } = useStore();
 
-    const [opcuaServerEndpoint, setOpcuaServerEndpoint] = useState('');
+    const [opcEndpointUri, setOpcEndpointUri] = useState('');
     const [securityMode, setSecurityMode] = useState<SecurityMode>(SecurityMode.Lowest);
     const [endpointCredentialType, setEndpointCredentialType] = useState<EndpointCredentialType>(EndpointCredentialType.Anonymous);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [startNode, setStartNode] = useState('');
+    const [nodeDepth, setNodeDepth] = useState(1);
+    const [nodeClasses, setNodeClasses] = useState<OpcNodeClass[]>([]);
+    const [nodeAttributes, setNodeAttributes] = useState<OpcAttribute[]>([]);
 
     const appSubdomain = (location.state as any).appSubdomain;
     const deviceId = (location.state as any).deviceId;
@@ -46,11 +56,10 @@ const ConfigAdapterPage: FC = observer(() => {
         }
     }, []);
 
-    // @ts-ignore
     const onFieldChange = (e: any, fieldId: string) => {
         switch (fieldId) {
-            case 'opcuaServerEndpoint':
-                setOpcuaServerEndpoint(e.target.value);
+            case 'opcEndpointUri':
+                setOpcEndpointUri(e.target.value);
                 break;
             case 'username':
                 setUsername(e.target.value);
@@ -58,13 +67,19 @@ const ConfigAdapterPage: FC = observer(() => {
             case 'password':
                 setPassword(e.target.value);
                 break;
+            case 'startNode':
+                setStartNode(e.target.value);
+                break;
+            case 'nodeDepth':
+                setNodeDepth(e.target.value);
+                break;
         }
     };
 
     const testOpcuaConnection = async (e: FormEvent, _formProps: FormProps) => {
         e.preventDefault();
 
-        if (!opcuaServerEndpoint) {
+        if (!opcEndpointUri) {
             await showInfoDialog(infoDialogContext, {
                 catchOnCancel: true,
                 variant: 'info',
@@ -75,8 +90,8 @@ const ConfigAdapterPage: FC = observer(() => {
             return;
         }
 
-        const opcEndpoint: Endpoint = {
-            Uri: opcuaServerEndpoint,
+        const opcEndpoint: IEndpoint = {
+            Uri: opcEndpointUri,
             SecurityMode: securityMode,
             Credentials: {
                 CredentialType: endpointCredentialType,
@@ -86,6 +101,39 @@ const ConfigAdapterPage: FC = observer(() => {
         };
 
         await iotCentralStore.testIndustrialConnectEndpoint(opcEndpoint, appSubdomain, deviceId);
+    };
+
+    const browseNodes = async (e: FormEvent, _formProps: FormProps) => {
+        e.preventDefault();
+
+        if (!startNode || !nodeClasses.length || !nodeAttributes.length) {
+            await showInfoDialog(infoDialogContext, {
+                catchOnCancel: true,
+                variant: 'info',
+                title: 'Test Connection',
+                description: 'Some required parameters are missing for BrowseNodes'
+            });
+
+            return;
+        }
+
+        const browseNodesRequest: IBrowseNodesRequest = {
+            OpcEndpoint: {
+                Uri: opcEndpointUri,
+                SecurityMode: securityMode,
+                Credentials: {
+                    CredentialType: endpointCredentialType,
+                    Username: username,
+                    Password: password
+                }
+            },
+            StartNode: startNode,
+            Depth: nodeDepth,
+            RequestedNodeClasses: nodeClasses,
+            RequestedAttributes: nodeAttributes
+        };
+
+        await iotCentralStore.browseNodes(browseNodesRequest, appSubdomain, deviceId);
     };
 
     const onSaveConfig = async () => {
@@ -109,7 +157,7 @@ const ConfigAdapterPage: FC = observer(() => {
         setSecurityMode(props.value as SecurityMode);
     };
 
-    const EndpointCredentialTypeOptions = [
+    const endpointCredentialTypeOptions = [
         {
             key: EndpointCredentialType.Anonymous,
             text: EndpointCredentialType.Anonymous,
@@ -124,6 +172,75 @@ const ConfigAdapterPage: FC = observer(() => {
 
     const onEndpointCredentialTypeChange = (_e: SyntheticEvent, props: DropdownProps) => {
         setEndpointCredentialType(props.value as EndpointCredentialType);
+    };
+
+    const nodeClassOptions = [
+        {
+            key: OpcNodeClass.Object,
+            text: OpcNodeClass.Object,
+            value: OpcNodeClass.Object
+        },
+        {
+            key: OpcNodeClass.Variable,
+            text: OpcNodeClass.Variable,
+            value: OpcNodeClass.Variable
+        }
+    ];
+
+    const onNodeClassesChange = (_e: SyntheticEvent, props: DropdownProps) => {
+        setNodeClasses(props.value as OpcNodeClass[]);
+    };
+
+    const nodeAttributeOptions = [
+        {
+            key: OpcAttribute.NodeClass,
+            text: OpcAttribute.NodeClass,
+            value: OpcAttribute.NodeClass
+        },
+        {
+            key: OpcAttribute.BrowseName,
+            text: OpcAttribute.BrowseName,
+            value: OpcAttribute.BrowseName
+        },
+        {
+            key: OpcAttribute.DisplayName,
+            text: OpcAttribute.DisplayName,
+            value: OpcAttribute.DisplayName
+        },
+        {
+            key: OpcAttribute.Description,
+            text: OpcAttribute.Description,
+            value: OpcAttribute.Description
+        },
+        {
+            key: OpcAttribute.DataType,
+            text: OpcAttribute.DataType,
+            value: OpcAttribute.DataType
+        },
+        {
+            key: OpcAttribute.Value,
+            text: OpcAttribute.Value,
+            value: OpcAttribute.Value
+        },
+        {
+            key: OpcAttribute.ValueRank,
+            text: OpcAttribute.ValueRank,
+            value: OpcAttribute.ValueRank
+        },
+        {
+            key: OpcAttribute.ArrayDimensions,
+            text: OpcAttribute.ArrayDimensions,
+            value: OpcAttribute.ArrayDimensions
+        },
+        {
+            key: OpcAttribute.UserAccessLevel,
+            text: OpcAttribute.UserAccessLevel,
+            value: OpcAttribute.UserAccessLevel
+        }
+    ];
+
+    const onNodeAttributesChange = (_e: SyntheticEvent, props: DropdownProps) => {
+        setNodeAttributes(props.value as OpcAttribute[]);
     };
 
     return (
@@ -148,6 +265,9 @@ const ConfigAdapterPage: FC = observer(() => {
                                 </Item.Content>
                             </Item>
                         </Item.Group>
+                        {/*
+                            Test Connection Segment
+                        */}
                         <Header attached="top" as="h3" color={'blue'}>OPCUA server connection</Header>
                         <Segment attached="bottom">
                             <Form size={'small'} loading={iotCentralStore.waitingOnApiCall} onSubmit={testOpcuaConnection}>
@@ -155,8 +275,8 @@ const ConfigAdapterPage: FC = observer(() => {
                                     <label>Uri:</label>
                                     <Input
                                         placeholder="Example: opc.tcp://192.168.4.101:4840"
-                                        value={opcuaServerEndpoint}
-                                        onChange={(e) => onFieldChange(e, 'opcuaServerEndpoint')}
+                                        value={opcEndpointUri}
+                                        onChange={(e) => onFieldChange(e, 'opcEndpointUri')}
                                     />
                                 </Form.Field>
                                 <Form.Dropdown
@@ -169,9 +289,9 @@ const ConfigAdapterPage: FC = observer(() => {
                                 />
                                 <Form.Dropdown
                                     width={4}
-                                    label="Security mode:"
+                                    label="Credentials:"
                                     selection
-                                    options={EndpointCredentialTypeOptions}
+                                    options={endpointCredentialTypeOptions}
                                     defaultValue={endpointCredentialType}
                                     onChange={onEndpointCredentialTypeChange}
                                 />
@@ -199,6 +319,45 @@ const ConfigAdapterPage: FC = observer(() => {
                                 }
                                 <Divider hidden />
                                 <Button size={'tiny'} type='submit'>Test Connection</Button>
+                            </Form>
+                        </Segment>
+                        {/*
+                            Browse Nodes Segment
+                        */}
+                        <Header attached="top" as="h3" color={'blue'}>Browse OPCUA Server</Header>
+                        <Segment attached="bottom">
+                            <Form size={'small'} loading={iotCentralStore.waitingOnApiCall} onSubmit={browseNodes}>
+                                <Form.Field width={16}>
+                                    <label>Starting node:</label>
+                                    <Input
+                                        placeholder="Example: ns=0;i=85"
+                                        value={startNode}
+                                        onChange={(e) => onFieldChange(e, 'startNode')}
+                                    />
+                                </Form.Field>
+                                <Form.Field width={2}>
+                                    <label>Depth:</label>
+                                    <Input
+                                        value={nodeDepth}
+                                        onChange={(e) => onFieldChange(e, 'nodeDepth')}
+                                    />
+                                </Form.Field>
+                                <Form.Dropdown
+                                    width={4}
+                                    label="Node classes:"
+                                    selection
+                                    options={nodeClassOptions}
+                                    onChange={onNodeClassesChange}
+                                />
+                                <Form.Dropdown
+                                    width={4}
+                                    label="Node attributes:"
+                                    selection
+                                    options={nodeAttributeOptions}
+                                    onChange={onNodeAttributesChange}
+                                />
+                                <Divider hidden />
+                                <Button size={'tiny'} type='submit'>Browse Nodes</Button>
                             </Form>
                         </Segment>
                     </Segment>

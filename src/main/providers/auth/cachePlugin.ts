@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import logger from '../logger';
+import logger from '../../logger';
 import { join as pathJoin } from 'path';
 import * as fse from 'fs-extra';
 import { TokenCacheContext } from '@azure/msal-node';

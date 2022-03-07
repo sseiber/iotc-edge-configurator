@@ -1,12 +1,13 @@
 import { AccountInfo } from '@azure/msal-node';
-import { IMsalConfig } from '../main/authProvider/authProvider';
+import { IMsalConfig } from '../main/models/msalAuth';
 import {
     IIotCentralApp,
     IIotCentralDevice,
     IIotCentralModule
 } from '../main/models/iotCentral';
 import {
-    Endpoint
+    IEndpoint,
+    IBrowseNodesRequest
 } from '../main/models/industrialConnect';
 
 // Main
@@ -32,6 +33,7 @@ const Ipc_GetIotcDeviceModules = 'Ipc_GetIotcDeviceModules';
 
 // Industrial Connect
 const Ipc_TestIndustrialConnectEndpoint = 'Ipc_TestIndustrialConnectEndpoint';
+const Ipc_BrowseNodes = 'Ipc_BrowseNodes';
 
 declare global {
     interface Window {
@@ -58,7 +60,8 @@ declare global {
             [Ipc_GetIotcDeviceModules]: (appSubdomain: string, deviceId: string) => Promise<IIotCentralModule[]>;
 
             // Industrial Connect
-            [Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint: Endpoint, appSubdomain: string, deviceId: string, moduleName: string) => Promise<boolean>;
+            [Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint: IEndpoint, appSubdomain: string, deviceId: string, moduleName: string) => Promise<boolean>;
+            [Ipc_BrowseNodes]: (browseNodesRequest: IBrowseNodesRequest, appSubdomain: string, deviceId: string, moduleName: string) => Promise<string>;
         };
     }
 }
@@ -79,5 +82,6 @@ export {
     Ipc_GetIotcApps,
     Ipc_GetIotcDevices,
     Ipc_GetIotcDeviceModules,
-    Ipc_TestIndustrialConnectEndpoint
+    Ipc_TestIndustrialConnectEndpoint,
+    Ipc_BrowseNodes
 };

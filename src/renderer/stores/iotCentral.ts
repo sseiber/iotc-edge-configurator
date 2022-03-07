@@ -6,7 +6,8 @@ import {
     IIotCentralModule
 } from '../../main/models/iotCentral';
 import {
-    Endpoint
+    IEndpoint,
+    IBrowseNodesRequest
 } from '../../main/models/industrialConnect';
 
 export class IotCentralStore {
@@ -20,6 +21,7 @@ export class IotCentralStore {
     public mapDeviceApp: Map<string, IIotCentralApp> = new Map<string, IIotCentralApp>();
     public mapDeviceModules: Map<string, IIotCentralModule[]> = new Map<string, IIotCentralModule[]>();
     public connectionGood = false;
+    public browsedNodesResultFilePath: string;
 
     public serviceError = '';
 
@@ -91,7 +93,7 @@ export class IotCentralStore {
         }
         catch (ex) {
             runInAction(() => {
-                this.serviceError = `An error occurred while attempting to get the list of IoT Central apps: ${ex.message}`;
+                this.serviceError = `An error occurred while attempting to get the list of devices: ${ex.message}`;
             });
         }
         finally {
@@ -123,7 +125,7 @@ export class IotCentralStore {
         }
         catch (ex) {
             runInAction(() => {
-                this.serviceError = `An error occurred while attempting to get the list of IoT Central apps: ${ex.message}`;
+                this.serviceError = `An error occurred while attempting to get the list of device modules: ${ex.message}`;
             });
         }
         finally {
@@ -133,7 +135,7 @@ export class IotCentralStore {
         }
     }
 
-    public async testIndustrialConnectEndpoint(opcEndpoint: Endpoint, appSubdomain: string, deviceId: string): Promise<void> {
+    public async testIndustrialConnectEndpoint(opcEndpoint: IEndpoint, appSubdomain: string, deviceId: string): Promise<void> {
         runInAction(() => {
             this.waitingOnApiCall = true;
         });
@@ -147,7 +149,31 @@ export class IotCentralStore {
         }
         catch (ex) {
             runInAction(() => {
-                this.serviceError = `An error occurred while attempting to get the list of IoT Central apps: ${ex.message}`;
+                this.serviceError = `An error occurred while testing the connection to the OPCUA server: ${ex.message}`;
+            });
+        }
+        finally {
+            runInAction(() => {
+                this.waitingOnApiCall = false;
+            });
+        }
+    }
+
+    public async browseNodes(browseNodesRequest: IBrowseNodesRequest, appSubdomain: string, deviceId: string): Promise<void> {
+        runInAction(() => {
+            this.waitingOnApiCall = true;
+        });
+
+        try {
+            const moduleName = this.mapDeviceModules.get(deviceId)[0].name;
+            const browsedNodesResultFilePath = await window.ipcApi[contextBridgeTypes.Ipc_BrowseNodes](browseNodesRequest, appSubdomain, deviceId, moduleName);
+            runInAction(() => {
+                this.browsedNodesResultFilePath = browsedNodesResultFilePath;
+            });
+        }
+        catch (ex) {
+            runInAction(() => {
+                this.serviceError = `An error occurred while attempting to browse the node heirarchy on the OPCUA server: ${ex.message}`;
             });
         }
         finally {

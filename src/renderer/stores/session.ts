@@ -1,7 +1,5 @@
 import { makeAutoObservable, runInAction } from 'mobx';
-import {
-    IMsalConfig
-} from '../../main/authProvider/authProvider';
+import { IMsalConfig } from '../../main/models/msalAuth';
 import * as contextBridgeTypes from '../../main/contextBridgeTypes';
 import { AccountInfo } from '@azure/msal-node';
 import { AppNavigationPaths } from '../App';

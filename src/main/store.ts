@@ -1,4 +1,7 @@
 import Store from 'electron-store';
+import {
+    IAdapterConfiguration
+} from '../main/models/industrialConnect';
 
 export enum StoreKeys {
     lastOAuthError = 'lastOAuthError',
@@ -11,7 +14,8 @@ export enum StoreKeys {
     aadAuthority = 'aadAuthority',
     graphEndpointHost = 'graphEndpointHost',
     graphMeEndpoint = 'graphMeEndpoint',
-    appProtocolName = 'appProtocolName'
+    appProtocolName = 'appProtocolName',
+    adapterConfigCache = 'adapterConfigCache'
 }
 
 interface StoreType {
@@ -26,6 +30,7 @@ interface StoreType {
     graphEndpointHost: string;
     graphMeEndpoint: string;
     appProtocolName: string;
+    adapterConfigCache: IAdapterConfiguration[];
 }
 
 const store = new Store<StoreType>({
@@ -40,7 +45,8 @@ const store = new Store<StoreType>({
         aadAuthority: 'https://login.microsoftonline.com/common/',
         graphEndpointHost: 'https://graph.microsoft.com/',
         graphMeEndpoint: 'v1.0/me',
-        appProtocolName: ''
+        appProtocolName: '',
+        adapterConfigCache: []
     }
 });
 

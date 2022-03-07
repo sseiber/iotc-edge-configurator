@@ -1,5 +1,6 @@
 export enum IndustrialConnectCommands {
-    TestConnection = 'TestConnection_v1'
+    TestConnection = 'TestConnection_v1',
+    BrowseNodes = 'BrowseNodes_v1'
 }
 
 export enum SecurityMode {
@@ -12,20 +13,63 @@ export enum EndpointCredentialType {
     Username = 'Username'
 }
 
-export interface EndpointCredentials {
+export interface IEndpointCredentials {
     CredentialType: EndpointCredentialType;
     Username: string;
     Password: string;
 }
 
-export interface Endpoint {
+export interface IEndpoint {
     Uri: string;
     SecurityMode: SecurityMode;
-    Credentials: EndpointCredentials;
+    Credentials: IEndpointCredentials;
 }
 
-export interface IBrowseNodesRequestParams {
+export enum OpcNodeClass {
+    Unspecified = 0,
+    Object = 1,
+    Variable = 2,
+}
+
+export enum OpcAttribute {
+    NodeClass = 2,
+    BrowseName = 3,
+    DisplayName = 4,
+    Description = 5,
+    Value = 13,
+    DataType = 14,
+    ValueRank = 15,
+    ArrayDimensions = 16,
+    UserAccessLevel = 18,
+}
+
+export interface IBrowseNodesRequest {
+    OpcEndpoint: IEndpoint;
     StartNode: string;
     Depth: number;
-    RequestedAttributes: string;
+    RequestedNodeClasses: OpcNodeClass[];
+    RequestedAttributes: OpcAttribute[];
+}
+
+export interface ITestConnectionConfig {
+    opcEndpointUri: string[];
+    securityMode: SecurityMode;
+    credentials: IEndpointCredentials;
+}
+
+export interface IBrowseNodesConfig {
+    startNode: string[];
+    depth: number[];
+    requestedNodeClasses: OpcNodeClass[];
+    requestedAttributes: OpcAttribute[];
+}
+
+export interface IAdapterConfiguration {
+    appId: string;
+    testConnection: ITestConnectionConfig;
+    browseNodes: IBrowseNodesConfig;
+}
+
+export interface IBrowseNodesResponse {
+    JobId: string;
 }

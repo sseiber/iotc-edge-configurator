@@ -1,9 +1,18 @@
 import {
-    BrowserWindow
+    BrowserWindow,
+    IpcMain,
+    IpcMainInvokeEvent
 } from 'electron';
+import * as contextBridgeTypes from '../../contextBridgeTypes';
+import logger from '../../logger';
+import { AppProvider } from '../appProvider';
 import { cachePlugin } from './cachePlugin';
 import { FileProtocolAuthorizationCodeListener } from './FileProtocolAuthorizationCodeListener';
-import store, { StoreKeys } from '../store';
+import store, { StoreKeys } from '../../store';
+import {
+    UserProfileScope,
+    IMsalConfig
+} from '../../models/msalAuth';
 import {
     PublicClientApplication,
     LogLevel,
@@ -13,25 +22,10 @@ import {
     SilentFlowRequest
 } from '@azure/msal-node';
 import axios from 'axios';
-import logger from '../logger';
 
-const ModuleName = 'authProvider';
+const ModuleName = 'MsalAuthProvider';
 
 const AuthCodeTimeout = 1000 * 30;
-
-export const UserProfileScope = 'User.Read';
-export const AzureManagementScope = 'https://management.azure.com/.default';
-export const IoTCentralApiScope = 'https://apps.azureiotcentral.com/.default';
-
-export interface IMsalConfig {
-    clientId: string;
-    clientSecret?: string;
-    tenantId: string;
-    subscriptionId: string;
-    redirectUri: string;
-    aadAuthority: string;
-    appProtocolName: string;
-}
 
 // Configuration object to be passed to MSAL instance on creation.
 // For a full list of MSAL Node configuration parameters, visit:
@@ -55,13 +49,17 @@ export interface IMsalConfig {
 //     }
 // };
 
-export class AuthProvider {
-    private authWindow: BrowserWindow;
+export class MsalAuthProvider extends AppProvider {
+    private mainWindowEntry: string;
     private clientApplication: PublicClientApplication;
     private account: AccountInfo;
 
-    constructor(authWindow: BrowserWindow) {
-        this.authWindow = authWindow;
+    constructor(ipcMain: IpcMain, authWindow: BrowserWindow, mainWindowEntry: string) {
+        super(ipcMain, authWindow);
+
+        this.mainWindowEntry = mainWindowEntry;
+
+        this.registerIpcEventHandlers();
     }
 
     public async initialize(): Promise<boolean> {
@@ -103,6 +101,126 @@ export class AuthProvider {
         }
 
         return result;
+    }
+
+    public registerIpcEventHandlers(): void {
+        //
+        // Auth event handlers
+        //
+        this.ipcMain.handle(contextBridgeTypes.Ipc_GetLastOAuthError, async (_event: IpcMainInvokeEvent): Promise<string> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetLastOAuthError} handler`);
+
+            return store.get(StoreKeys.lastOAuthError);
+        });
+
+        this.ipcMain.handle(contextBridgeTypes.Ipc_SetLastOAuthError, async (_event: IpcMainInvokeEvent, message: string): Promise<void> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_SetLastOAuthError} handler`);
+
+            store.set(StoreKeys.lastOAuthError, message);
+        });
+
+        this.ipcMain.handle(contextBridgeTypes.Ipc_SetMsalConfig, async (_event: IpcMainInvokeEvent, msalConfig: IMsalConfig): Promise<void> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_SetMsalConfig} handler`);
+
+            store.set(StoreKeys.clientId, msalConfig.clientId);
+            store.set(StoreKeys.clientSecret, msalConfig.clientSecret || '');
+            store.set(StoreKeys.tenantId, msalConfig.tenantId);
+            store.set(StoreKeys.subscriptionId, msalConfig.subscriptionId);
+            store.set(StoreKeys.redirectUri, msalConfig.redirectUri);
+            store.set(StoreKeys.aadAuthority, msalConfig.aadAuthority);
+            store.set(StoreKeys.appProtocolName, msalConfig.appProtocolName);
+        });
+
+        this.ipcMain.handle(contextBridgeTypes.Ipc_GetMsalConfig, async (_event: IpcMainInvokeEvent): Promise<IMsalConfig> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetMsalConfig} handler`);
+
+            return {
+                clientId: store.get(StoreKeys.clientId),
+                clientSecret: store.get(StoreKeys.clientSecret),
+                tenantId: store.get(StoreKeys.tenantId),
+                subscriptionId: store.get(StoreKeys.subscriptionId),
+                redirectUri: store.get(StoreKeys.redirectUri),
+                aadAuthority: store.get(StoreKeys.aadAuthority),
+                appProtocolName: store.get(StoreKeys.appProtocolName)
+            };
+        });
+
+        this.ipcMain.handle(contextBridgeTypes.Ipc_Signin, async (_event: IpcMainInvokeEvent, redirectPath?: string): Promise<AccountInfo> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_Signin} handler`);
+
+            let accountInfo;
+
+            try {
+                // use a separate window for a pop-up login ui experience
+                // const authWindow = this.createAuthWindow();
+
+                // re-initialize the auth provider from the cache
+                // in case the user has changed the Azure MSAL configuration
+                await this.initialize();
+
+                accountInfo = await this.signin();
+
+                const mainEntryUrl = new URL(this.mainWindowEntry);
+
+                if (redirectPath) {
+                    mainEntryUrl.searchParams.set('redirectpath', redirectPath);
+                }
+
+                await this.authWindow.loadURL(mainEntryUrl.href);
+
+                // authWindow.close();
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_Signin} handler: ${ex.message}`);
+            }
+
+            return accountInfo;
+        });
+
+        this.ipcMain.handle(contextBridgeTypes.Ipc_Signout, async (_event: IpcMainInvokeEvent): Promise<void> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_Signout} handler`);
+
+            try {
+                await this.signout();
+
+                await this.authWindow.loadURL(this.mainWindowEntry);
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_Signout} handler: ${ex.message}`);
+            }
+        });
+
+        this.ipcMain.handle(contextBridgeTypes.Ipc_GetAccount, async (_event: IpcMainInvokeEvent): Promise<AccountInfo> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetAccount} handler`);
+
+            let account;
+
+            try {
+                account = this.getCurrentAccount();
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetAccount} handler: ${ex.message}`);
+            }
+
+            return account;
+        });
+
+        this.ipcMain.handle(contextBridgeTypes.Ipc_GetProfile, async (_event: IpcMainInvokeEvent): Promise<any> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetProfile} handler`);
+
+            let graphResponse;
+
+            try {
+                const token = await this.getScopedToken(UserProfileScope);
+
+                graphResponse = await this.callEndpointWithToken(`${store.get(StoreKeys.graphEndpointHost)}${store.get(StoreKeys.graphMeEndpoint)}`, token);
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetProfile} handler: ${ex.message}`);
+            }
+
+            return graphResponse;
+        });
     }
 
     public async signin(): Promise<AccountInfo> {
@@ -149,6 +267,7 @@ export class AuthProvider {
             this.authWindow,
             {
                 account,
+                forceRefresh: false,
                 scopes: [scope]
             }
         );
@@ -206,6 +325,7 @@ export class AuthProvider {
                 authWindow,
                 {
                     account,
+                    forceRefresh: false,
                     scopes
                 }
             );

@@ -24,5 +24,6 @@ contextBridge.exposeInMainWorld('ipcApi', {
     [contextBridgeTypes.Ipc_GetIotcApps]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcApps),
     [contextBridgeTypes.Ipc_GetIotcDevices]: (appSubdomain, appId) => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcDevices, appSubdomain, appId),
     [contextBridgeTypes.Ipc_GetIotcDeviceModules]: (appSubdomain, deviceId) => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcDeviceModules, appSubdomain, deviceId),
-    [contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint, appSubdomain, deviceId, moduleName) => ipcRenderer.invoke(contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint, opcEndpoint, appSubdomain, deviceId, moduleName)
+    [contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint, appSubdomain, deviceId, moduleName) => ipcRenderer.invoke(contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint, opcEndpoint, appSubdomain, deviceId, moduleName),
+    [contextBridgeTypes.Ipc_BrowseNodes]: (browseNodesRequest, appSubdomain, deviceId, moduleName) => ipcRenderer.invoke(contextBridgeTypes.Ipc_BrowseNodes, browseNodesRequest, appSubdomain, deviceId, moduleName)
 });
