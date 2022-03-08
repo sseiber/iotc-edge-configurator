@@ -14,15 +14,15 @@ export enum EndpointCredentialType {
 }
 
 export interface IEndpointCredentials {
-    CredentialType: EndpointCredentialType;
-    Username: string;
-    Password: string;
+    credentialType: EndpointCredentialType;
+    username: string;
+    password: string;
 }
 
 export interface IEndpoint {
-    Uri: string;
-    SecurityMode: SecurityMode;
-    Credentials: IEndpointCredentials;
+    uri: string;
+    securityMode: SecurityMode;
+    credentials: IEndpointCredentials;
 }
 
 export enum OpcNodeClass {
@@ -43,11 +43,11 @@ export enum OpcAttribute {
 }
 
 export interface IBrowseNodesRequest {
-    OpcEndpoint: IEndpoint;
-    StartNode: string;
-    Depth: number;
-    RequestedNodeClasses: OpcNodeClass[];
-    RequestedAttributes: OpcAttribute[];
+    opcEndpoint: IEndpoint;
+    startNode: string;
+    depth: number;
+    requestedNodeClasses: OpcNodeClass[];
+    requestedAttributes: OpcAttribute[];
 }
 
 export interface ITestConnectionConfig {
@@ -63,17 +63,33 @@ export interface IBrowseNodesConfig {
     requestedAttributes: OpcAttribute[];
 }
 
-export interface IDeviceConfiguration {
+export interface IAdapterConfiguration {
+    appId: string;
+    deviceId: string;
     testConnection: ITestConnectionConfig;
     browseNodes: IBrowseNodesConfig;
 }
 
-export interface IAdapterConfiguration {
-    appId: string;
-    deviceId: string;
-    deviceConfig: IDeviceConfiguration;
-}
+export const emptyAdapterConfig: IAdapterConfiguration = {
+    appId: '',
+    deviceId: '',
+    testConnection: {
+        opcEndpointUri: '',
+        securityMode: SecurityMode.Lowest,
+        credentials: {
+            credentialType: EndpointCredentialType.Anonymous,
+            username: '',
+            password: ''
+        }
+    },
+    browseNodes: {
+        startNode: '',
+        depth: 1,
+        requestedNodeClasses: [OpcNodeClass.Object, OpcNodeClass.Variable],
+        requestedAttributes: [OpcAttribute.DisplayName, OpcAttribute.BrowseName]
+    }
+};
 
 export interface IBrowseNodesResponse {
-    JobId: string;
+    jobId: string;
 }

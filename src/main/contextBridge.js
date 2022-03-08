@@ -7,8 +7,8 @@ contextBridge.exposeInMainWorld('ipcApi', {
     // Main
     [contextBridgeTypes.Ipc_Log]: (tags, message) => ipcRenderer.invoke(contextBridgeTypes.Ipc_Log, tags, message),
     [contextBridgeTypes.Ipc_OpenConfiguration]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_OpenConfiguration),
-    [contextBridgeTypes.Ipc_OpenAdapterConfiguration]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_OpenAdapterConfiguration),
-    [contextBridgeTypes.Ipc_SaveAdapterConfiguration]: () => ipcRenderer.invoke(contextBridgeTypes.Ipc_SaveAdapterConfiguration),
+    [contextBridgeTypes.Ipc_GetAdapterConfiguration]: (appId, deviceId) => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetAdapterConfiguration, appId, deviceId),
+    [contextBridgeTypes.Ipc_SetAdapterConfiguration]: (adapterConfig) => ipcRenderer.invoke(contextBridgeTypes.Ipc_SetAdapterConfiguration, adapterConfig),
     [contextBridgeTypes.Ipc_OpenLink]: (url) => ipcRenderer.invoke(contextBridgeTypes.Ipc_OpenLink, url),
 
     // Auth

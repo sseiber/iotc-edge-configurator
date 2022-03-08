@@ -1,4 +1,4 @@
-import React, { SyntheticEvent, FormEvent, FC, useState } from 'react';
+import React, { SyntheticEvent, FormEvent, FC } from 'react';
 import { useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { useAsyncEffect } from 'use-async-effect';
@@ -12,9 +12,6 @@ import {
     OpcNodeClass,
     OpcAttribute,
     IBrowseNodesRequest
-    // ITestConnectionConfig,
-    // IBrowseNodesConfig,
-    // IAdapterConfiguration
 } from '../../../main/models/industrialConnect';
 import { createSelectOptionsFromEnum } from '../../utils';
 
@@ -31,36 +28,67 @@ const ConfigAdapterPage: FC = observer(() => {
     const deviceId = (location.state as any).deviceId;
     const deviceName = (location.state as any).deviceName;
 
-    const deviceConfig = mainStore.getCachedDeviceConfiguration(appId, deviceId);
+    useAsyncEffect(
+        async (isMounted) => {
+            try {
+                await mainStore.loadAdapterConfiguration(appId, deviceId);
+                await iotCentralStore.getDeviceModules(deviceId);
 
-    const [opcEndpointUri, setOpcEndpointUri] = useState(deviceConfig.testConnection.opcEndpointUri);
-    const [securityMode, setSecurityMode] = useState<SecurityMode>(deviceConfig.testConnection.securityMode);
-    const [endpointCredentialType, setEndpointCredentialType] = useState<EndpointCredentialType>(deviceConfig.testConnection.credentials.CredentialType);
-    const [username, setUsername] = useState(deviceConfig.testConnection.credentials.Username);
-    const [password, setPassword] = useState(deviceConfig.testConnection.credentials.Password);
-    const [startNode, setStartNode] = useState(deviceConfig.browseNodes.startNode);
-    const [nodeDepth, setNodeDepth] = useState(deviceConfig.browseNodes.depth);
-    const [nodeClasses, setNodeClasses] = useState<OpcNodeClass[]>(deviceConfig.browseNodes.requestedNodeClasses);
-    const [nodeAttributes, setNodeAttributes] = useState<OpcAttribute[]>(deviceConfig.browseNodes.requestedAttributes);
-
-    useAsyncEffect(async isMounted => {
-        try {
-            await mainStore.openAdapterConfiguration();
-            await iotCentralStore.getDeviceModules(deviceId);
-
-            if (!isMounted()) {
-                return;
+                if (!isMounted()) {
+                    return;
+                }
             }
-        }
-        catch (ex) {
-            await showInfoDialog(infoDialogContext, {
-                catchOnCancel: true,
-                variant: 'info',
-                title: 'Error',
-                description: ex.message
-            });
-        }
-    }, []);
+            catch (ex) {
+                await showInfoDialog(infoDialogContext, {
+                    catchOnCancel: true,
+                    variant: 'info',
+                    title: 'Error',
+                    description: ex.message
+                });
+            }
+
+        },
+        async () => {
+            await mainStore.saveAdapterConfig();
+        },
+        []
+    );
+
+    const setOpcEndpointUri = (value: string): void => {
+        mainStore.updateAdapterConfig('testConnection.opcEndpointUri', value);
+    };
+
+    const setSecurityMode = (value: SecurityMode): void => {
+        mainStore.updateAdapterConfig('testConnection.securityMode', value);
+    };
+
+    const setEndpointCredentialType = (value: EndpointCredentialType): void => {
+        mainStore.updateAdapterConfig('testConnection.credentials.credentialType', value);
+    };
+
+    const setUsername = (value: string): void => {
+        mainStore.updateAdapterConfig('testConnection.credentials.username', value);
+    };
+
+    const setPassword = (value: string): void => {
+        mainStore.updateAdapterConfig('testConnection.credentials.password', value);
+    };
+
+    const setStartNode = (value: string): void => {
+        mainStore.updateAdapterConfig('browseNodes.startNode', value);
+    };
+
+    const setNodeDepth = (value: number): void => {
+        mainStore.updateAdapterConfig('browseNodes.depth', value);
+    };
+
+    const setNodeClasses = (value: OpcNodeClass[]): void => {
+        mainStore.updateAdapterConfig('browseNodes.requestedNodeClasses', value);
+    };
+
+    const setNodeAttributes = (value: OpcAttribute[]): void => {
+        mainStore.updateAdapterConfig('browseNodes.requestedAttributes', value);
+    };
 
     const onFieldChange = (e: any) => {
         switch (e.target.id) {
@@ -85,7 +113,7 @@ const ConfigAdapterPage: FC = observer(() => {
     const testOpcuaConnection = async (e: FormEvent, _formProps: FormProps) => {
         e.preventDefault();
 
-        if (!opcEndpointUri) {
+        if (!mainStore.adapterConfig.testConnection.opcEndpointUri) {
             await showInfoDialog(infoDialogContext, {
                 catchOnCancel: true,
                 variant: 'info',
@@ -97,22 +125,25 @@ const ConfigAdapterPage: FC = observer(() => {
         }
 
         const opcEndpoint: IEndpoint = {
-            Uri: opcEndpointUri,
-            SecurityMode: securityMode,
-            Credentials: {
-                CredentialType: endpointCredentialType,
-                Username: username,
-                Password: password
+            uri: mainStore.adapterConfig.testConnection.opcEndpointUri,
+            securityMode: mainStore.adapterConfig.testConnection.securityMode,
+            credentials: {
+                credentialType: mainStore.adapterConfig.testConnection.credentials.credentialType,
+                username: mainStore.adapterConfig.testConnection.credentials.username,
+                password: mainStore.adapterConfig.testConnection.credentials.password
             }
         };
 
+        await mainStore.saveAdapterConfig();
         await iotCentralStore.testIndustrialConnectEndpoint(opcEndpoint, appSubdomain, deviceId);
     };
 
     const browseNodes = async (e: FormEvent, _formProps: FormProps) => {
         e.preventDefault();
 
-        if (!startNode || !nodeClasses.length || !nodeAttributes.length) {
+        if (!mainStore.adapterConfig.browseNodes.startNode
+            || !mainStore.adapterConfig.browseNodes.requestedNodeClasses.length
+            || !mainStore.adapterConfig.browseNodes.requestedAttributes.length) {
             await showInfoDialog(infoDialogContext, {
                 catchOnCancel: true,
                 variant: 'info',
@@ -124,21 +155,22 @@ const ConfigAdapterPage: FC = observer(() => {
         }
 
         const browseNodesRequest: IBrowseNodesRequest = {
-            OpcEndpoint: {
-                Uri: opcEndpointUri,
-                SecurityMode: securityMode,
-                Credentials: {
-                    CredentialType: endpointCredentialType,
-                    Username: username,
-                    Password: password
+            opcEndpoint: {
+                uri: mainStore.adapterConfig.testConnection.opcEndpointUri,
+                securityMode: mainStore.adapterConfig.testConnection.securityMode,
+                credentials: {
+                    credentialType: mainStore.adapterConfig.testConnection.credentials.credentialType,
+                    username: mainStore.adapterConfig.testConnection.credentials.username,
+                    password: mainStore.adapterConfig.testConnection.credentials.password
                 }
             },
-            StartNode: startNode,
-            Depth: nodeDepth,
-            RequestedNodeClasses: nodeClasses,
-            RequestedAttributes: nodeAttributes
+            startNode: mainStore.adapterConfig.browseNodes.startNode,
+            depth: mainStore.adapterConfig.browseNodes.depth,
+            requestedNodeClasses: mainStore.adapterConfig.browseNodes.requestedNodeClasses,
+            requestedAttributes: mainStore.adapterConfig.browseNodes.requestedAttributes
         };
 
+        await mainStore.saveAdapterConfig();
         await iotCentralStore.browseNodes(browseNodesRequest, appSubdomain, deviceId);
     };
 
@@ -203,7 +235,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     <Input
                                         id="opcEndpointUri"
                                         placeholder="Example: opc.tcp://192.168.4.101:4840"
-                                        value={opcEndpointUri}
+                                        value={mainStore.adapterConfig.testConnection.opcEndpointUri}
                                         onChange={onFieldChange}
                                     />
                                 </Form.Field>
@@ -212,7 +244,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     label="Security mode:"
                                     selection
                                     options={securityModeOptions}
-                                    defaultValue={securityMode}
+                                    defaultValue={mainStore.adapterConfig.testConnection.securityMode}
                                     onChange={onSecurityModeChange}
                                 />
                                 <Form.Dropdown
@@ -220,18 +252,18 @@ const ConfigAdapterPage: FC = observer(() => {
                                     label="Credentials:"
                                     selection
                                     options={endpointCredentialTypeOptions}
-                                    defaultValue={endpointCredentialType}
+                                    defaultValue={mainStore.adapterConfig.testConnection.credentials.credentialType}
                                     onChange={onEndpointCredentialTypeChange}
                                 />
                                 {
-                                    endpointCredentialType === EndpointCredentialType.Username
+                                    mainStore.adapterConfig.testConnection.credentials.credentialType === EndpointCredentialType.Username
                                         ? (
                                             <Segment basic compact attached={'bottom'}>
                                                 <Form.Field width={16}>
                                                     <label>Username:</label>
                                                     <Input
                                                         id="username"
-                                                        value={username}
+                                                        value={mainStore.adapterConfig.testConnection.credentials.username}
                                                         onChange={onFieldChange}
                                                     />
                                                 </Form.Field>
@@ -239,7 +271,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                                     <label>Password:</label>
                                                     <Input
                                                         id="password"
-                                                        value={password}
+                                                        value={mainStore.adapterConfig.testConnection.credentials.password}
                                                         onChange={onFieldChange}
                                                     />
                                                 </Form.Field>
@@ -279,7 +311,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     <Input
                                         id="startNode"
                                         placeholder="Example: ns=0;i=85"
-                                        value={startNode}
+                                        value={mainStore.adapterConfig.browseNodes.startNode}
                                         onChange={onFieldChange}
                                     />
                                 </Form.Field>
@@ -287,7 +319,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     <label>Depth:</label>
                                     <Input
                                         id="nodeDepth"
-                                        value={nodeDepth}
+                                        value={mainStore.adapterConfig.browseNodes.depth}
                                         onChange={onFieldChange}
                                     />
                                 </Form.Field>
@@ -297,7 +329,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     multiple
                                     selection
                                     options={nodeClassOptions}
-                                    defaultValue={nodeClasses}
+                                    defaultValue={mainStore.adapterConfig.browseNodes.requestedNodeClasses}
                                     onChange={onNodeClassesChange}
                                 />
                                 <Form.Dropdown
@@ -306,7 +338,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     multiple
                                     selection
                                     options={nodeAttributeOptions}
-                                    defaultValue={nodeAttributes}
+                                    defaultValue={mainStore.adapterConfig.browseNodes.requestedAttributes}
                                     onChange={onNodeAttributesChange}
                                 />
                                 <Divider hidden />

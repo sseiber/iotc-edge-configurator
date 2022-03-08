@@ -28,7 +28,7 @@ const IotCentralPanel: FC<IIotCentralPanelProps> = observer((props: IIotCentralP
                                             [...mapApps.values()].map((app: IIotCentralApp) => {
                                                 return (
                                                     <IotCentralPanelListItem
-                                                        key={app.id}
+                                                        key={app.applicationId}
                                                         appName={app.displayName}
                                                         appId={app.applicationId}
                                                         appLocation={app.location}

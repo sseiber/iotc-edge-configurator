@@ -14,8 +14,8 @@ import {
 // Main
 const Ipc_Log = 'Ipc_Log';
 const Ipc_OpenConfiguration = 'Ipc_OpenConfiguration';
-const Ipc_OpenAdapterConfiguration = 'Ipc_OpenAdapterConfiguration';
-const Ipc_SaveAdapterConfiguration = 'Ipc_SaveAdapterConfiguration';
+const Ipc_GetAdapterConfiguration = 'Ipc_GetAdapterConfiguration';
+const Ipc_SetAdapterConfiguration = 'Ipc_SetAdapterConfiguration';
 const Ipc_OpenLink = 'Ipc_OpenLink';
 
 // Auth
@@ -44,8 +44,8 @@ declare global {
             // Main
             [Ipc_Log]: (tags: string[], message: string) => Promise<void>;
             [Ipc_OpenConfiguration]: () => Promise<any>;
-            [Ipc_OpenAdapterConfiguration]: () => Promise<IAdapterConfiguration[]>;
-            [Ipc_SaveAdapterConfiguration]: () => Promise<boolean>;
+            [Ipc_GetAdapterConfiguration]: (appId: string, deviceId: string) => Promise<IAdapterConfiguration>;
+            [Ipc_SetAdapterConfiguration]: (adapterConfig: IAdapterConfiguration) => Promise<boolean>;
             [Ipc_OpenLink]: (url: string) => Promise<void>;
 
             // Auth
@@ -74,8 +74,8 @@ declare global {
 export {
     Ipc_Log,
     Ipc_OpenConfiguration,
-    Ipc_OpenAdapterConfiguration,
-    Ipc_SaveAdapterConfiguration,
+    Ipc_GetAdapterConfiguration,
+    Ipc_SetAdapterConfiguration,
     Ipc_OpenLink,
     Ipc_GetLastOAuthError,
     Ipc_SetLastOAuthError,

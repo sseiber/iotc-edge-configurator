@@ -1,12 +1,9 @@
-import { makeAutoObservable, runInAction } from 'mobx';
+import { makeAutoObservable, runInAction, toJS } from 'mobx';
 import * as contextBridgeTypes from '../../main/contextBridgeTypes';
 import {
-    SecurityMode,
-    EndpointCredentialType,
-    OpcNodeClass,
-    OpcAttribute,
-    IDeviceConfiguration
+    emptyAdapterConfig
 } from '../../main/models/industrialConnect';
+import _set from 'lodash.set';
 
 export enum AuthenticationState {
     Authenticated = 'Authenticated',
@@ -16,12 +13,12 @@ export enum AuthenticationState {
 }
 
 export class MainStore {
-    public configuration: any;
-    public deviceConfigMap: Map<string, IDeviceConfiguration> = new Map<string, IDeviceConfiguration>();
-
     constructor() {
         makeAutoObservable(this);
     }
+
+    public configuration: any;
+    public adapterConfig = emptyAdapterConfig;
 
     public serviceError = '';
 
@@ -38,44 +35,22 @@ export class MainStore {
         }
     }
 
-    public async openAdapterConfiguration(): Promise<void> {
-        const configCache = await window.ipcApi[contextBridgeTypes.Ipc_OpenAdapterConfiguration]();
-        if (configCache) {
+    public updateAdapterConfig(key: string, value: any): void {
+        runInAction(() => {
+            _set(this.adapterConfig, key, value);
+        });
+    }
+
+    public async loadAdapterConfiguration(appId: string, deviceId: string): Promise<void> {
+        const adapterConfig = await window.ipcApi[contextBridgeTypes.Ipc_GetAdapterConfiguration](appId, deviceId);
+        if (adapterConfig) {
             runInAction(() => {
-                for (const config of configCache) {
-                    this.deviceConfigMap.set(`${config.appId}-${config.deviceId}`, config.deviceConfig);
-                }
+                this.adapterConfig = adapterConfig;
             });
         }
     }
 
-    public getCachedDeviceConfiguration(appId: string, deviceId: string): IDeviceConfiguration {
-        return this.deviceConfigMap.get(`${appId}-${deviceId}`) || {
-            testConnection: {
-                opcEndpointUri: '',
-                securityMode: SecurityMode.Lowest,
-                credentials: {
-                    CredentialType: EndpointCredentialType.Anonymous,
-                    Username: '',
-                    Password: ''
-                }
-            },
-            browseNodes: {
-                startNode: '',
-                depth: 1,
-                requestedNodeClasses: [OpcNodeClass.Object, OpcNodeClass.Variable],
-                requestedAttributes: [OpcAttribute.DisplayName, OpcAttribute.BrowseName]
-            }
-        };
-    }
-
-    public setCachedDeviceConfiguration(_appId: string, _deviceId: string): void {
-        // var index = items.indexOf(3452);
-
-        // if (~index) {
-        //     items[index] = 1010;
-        // }
-
-        return;
+    public async saveAdapterConfig(): Promise<void> {
+        await window.ipcApi[contextBridgeTypes.Ipc_SetAdapterConfiguration](toJS(this.adapterConfig));
     }
 }

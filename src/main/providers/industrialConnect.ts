@@ -14,7 +14,8 @@ import {
     IndustrialConnectCommands,
     IEndpoint,
     IBrowseNodesRequest,
-    IAdapterConfiguration
+    IAdapterConfiguration,
+    emptyAdapterConfig
 } from '../models/industrialConnect';
 import { requestApi } from '../utils';
 import store, { StoreKeys } from '../store';
@@ -63,37 +64,47 @@ export class IndustrialConnectProvider extends AppProvider {
             return browseNodesResponseFilePath;
         });
 
-        this.ipcMain.handle(contextBridgeTypes.Ipc_OpenAdapterConfiguration, async (_event: IpcMainInvokeEvent): Promise<IAdapterConfiguration[]> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_OpenAdapterConfiguration} handler`);
+        this.ipcMain.handle(contextBridgeTypes.Ipc_GetAdapterConfiguration, async (_event: IpcMainInvokeEvent, appId: string, deviceId: string): Promise<IAdapterConfiguration> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetAdapterConfiguration} handler`);
 
             let adapterConfig;
 
             try {
-                adapterConfig = store.get(StoreKeys.adapterConfigCache);
+                const configCache = store.get(StoreKeys.adapterConfigCache);
+                adapterConfig = configCache.find((config) => config.appId === appId && config.deviceId === deviceId);
             }
             catch (ex) {
-                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_OpenAdapterConfiguration} handler: ${ex.message}`);
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetAdapterConfiguration} handler: ${ex.message}`);
             }
 
-            return adapterConfig;
+            return adapterConfig || {
+                ...emptyAdapterConfig,
+                appId,
+                deviceId
+            };
         });
 
-        this.ipcMain.handle(contextBridgeTypes.Ipc_SaveAdapterConfiguration, async (_event: IpcMainInvokeEvent): Promise<boolean> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_SaveAdapterConfiguration} handler`);
+        this.ipcMain.handle(contextBridgeTypes.Ipc_SetAdapterConfiguration, async (_event: IpcMainInvokeEvent, adapterConfig: IAdapterConfiguration): Promise<boolean> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_SetAdapterConfiguration} handler`);
 
-            let result;
+            let result = true;
 
             try {
-                // const adapterConfigs = store.get(StoreKeys.adapterConfigCache);
-                // const index = adapterConfigs.indexOf('');
-                // if (index !== -1) {
-                //     return true;
-                // }
+                const configCache = store.get(StoreKeys.adapterConfigCache);
+                const cacheIndex = configCache.findIndex((config) => config.appId === adapterConfig.appId && config.deviceId === adapterConfig.deviceId);
+                if (cacheIndex >= 0) {
+                    configCache[cacheIndex] = adapterConfig;
+                }
+                else {
+                    configCache.push(adapterConfig);
+                }
 
-                result = true;
+                store.set(StoreKeys.adapterConfigCache, configCache);
             }
             catch (ex) {
-                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_SaveAdapterConfiguration} handler: ${ex.message}`);
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_SetAdapterConfiguration} handler: ${ex.message}`);
+
+                result = false;
             }
 
             return result;
