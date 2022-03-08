@@ -4,13 +4,13 @@ export enum IndustrialConnectCommands {
 }
 
 export enum SecurityMode {
-    Lowest = 'Lowest',
-    Best = 'Best'
+    Lowest,
+    Best
 }
 
 export enum EndpointCredentialType {
-    Anonymous = 'Anonymous',
-    Username = 'Username'
+    Anonymous,
+    Username
 }
 
 export interface IEndpointCredentials {
@@ -26,7 +26,6 @@ export interface IEndpoint {
 }
 
 export enum OpcNodeClass {
-    Unspecified = 0,
     Object = 1,
     Variable = 2,
 }
@@ -52,22 +51,27 @@ export interface IBrowseNodesRequest {
 }
 
 export interface ITestConnectionConfig {
-    opcEndpointUri: string[];
+    opcEndpointUri: string;
     securityMode: SecurityMode;
     credentials: IEndpointCredentials;
 }
 
 export interface IBrowseNodesConfig {
-    startNode: string[];
-    depth: number[];
+    startNode: string;
+    depth: number;
     requestedNodeClasses: OpcNodeClass[];
     requestedAttributes: OpcAttribute[];
 }
 
-export interface IAdapterConfiguration {
-    appId: string;
+export interface IDeviceConfiguration {
     testConnection: ITestConnectionConfig;
     browseNodes: IBrowseNodesConfig;
+}
+
+export interface IAdapterConfiguration {
+    appId: string;
+    deviceId: string;
+    deviceConfig: IDeviceConfiguration;
 }
 
 export interface IBrowseNodesResponse {

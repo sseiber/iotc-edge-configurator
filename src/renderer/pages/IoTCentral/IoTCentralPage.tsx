@@ -42,7 +42,7 @@ const IoTCentralPage: FC = observer(() => {
                     <Message size={'large'}>
                         <Message.Header>Azure IoT Solution Builder</Message.Header>
                     </Message>
-                    <Dimmer active={iotCentralStore.waitingOnApiCall} inverted>
+                    <Dimmer active={iotCentralStore.waitingIotCentralCall} inverted>
                         <Loader>Pending...</Loader>
                     </Dimmer>
                     <IotCentralPanel

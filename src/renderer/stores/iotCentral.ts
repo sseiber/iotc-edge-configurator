@@ -15,7 +15,8 @@ export class IotCentralStore {
         makeAutoObservable(this);
     }
 
-    public waitingOnApiCall = false;
+    public waitingIotCentralCall = false;
+    public waitingIndustrialConnectCall = false;
     public mapApps: Map<string, IIotCentralApp> = new Map<string, IIotCentralApp>();
     public mapAppDevices: Map<string, IIotCentralDevice[]> = new Map<string, IIotCentralDevice[]>();
     public mapDeviceApp: Map<string, IIotCentralApp> = new Map<string, IIotCentralApp>();
@@ -31,7 +32,7 @@ export class IotCentralStore {
 
     public async getIotCentralApps(refresh: boolean): Promise<void> {
         runInAction(() => {
-            this.waitingOnApiCall = true;
+            this.waitingIotCentralCall = true;
         });
 
         try {
@@ -60,14 +61,14 @@ export class IotCentralStore {
         }
         finally {
             runInAction(() => {
-                this.waitingOnApiCall = false;
+                this.waitingIotCentralCall = false;
             });
         }
     }
 
     public async getIotCentralDevices(appId: string, refresh: boolean): Promise<void> {
         runInAction(() => {
-            this.waitingOnApiCall = true;
+            this.waitingIotCentralCall = true;
         });
 
         try {
@@ -98,14 +99,14 @@ export class IotCentralStore {
         }
         finally {
             runInAction(() => {
-                this.waitingOnApiCall = false;
+                this.waitingIotCentralCall = false;
             });
         }
     }
 
     public async getDeviceModules(deviceId: string): Promise<void> {
         runInAction(() => {
-            this.waitingOnApiCall = true;
+            this.waitingIotCentralCall = true;
         });
 
         try {
@@ -130,14 +131,14 @@ export class IotCentralStore {
         }
         finally {
             runInAction(() => {
-                this.waitingOnApiCall = false;
+                this.waitingIotCentralCall = false;
             });
         }
     }
 
     public async testIndustrialConnectEndpoint(opcEndpoint: IEndpoint, appSubdomain: string, deviceId: string): Promise<void> {
         runInAction(() => {
-            this.waitingOnApiCall = true;
+            this.waitingIndustrialConnectCall = true;
         });
 
         try {
@@ -154,14 +155,14 @@ export class IotCentralStore {
         }
         finally {
             runInAction(() => {
-                this.waitingOnApiCall = false;
+                this.waitingIndustrialConnectCall = false;
             });
         }
     }
 
     public async browseNodes(browseNodesRequest: IBrowseNodesRequest, appSubdomain: string, deviceId: string): Promise<void> {
         runInAction(() => {
-            this.waitingOnApiCall = true;
+            this.waitingIndustrialConnectCall = true;
         });
 
         try {
@@ -178,7 +179,7 @@ export class IotCentralStore {
         }
         finally {
             runInAction(() => {
-                this.waitingOnApiCall = false;
+                this.waitingIndustrialConnectCall = false;
             });
         }
     }

@@ -4,12 +4,14 @@ import { Button, Item } from 'semantic-ui-react';
 import { AppNavigationPaths } from '../../App';
 
 interface IIoTAdapterPanelListItemProps {
+    appId: string;
     appSubdomain: string;
     deviceName: string;
     deviceId: string;
 }
 const IIoTAdapterPanelListItem: FC<IIoTAdapterPanelListItemProps> = (props: IIoTAdapterPanelListItemProps) => {
     const {
+        appId,
         appSubdomain,
         deviceName,
         deviceId
@@ -20,6 +22,7 @@ const IIoTAdapterPanelListItem: FC<IIoTAdapterPanelListItemProps> = (props: IIoT
     const onConfigure = () => {
         navigate(AppNavigationPaths.ConfigAdapter, {
             state: {
+                appId,
                 appSubdomain,
                 deviceName,
                 deviceId

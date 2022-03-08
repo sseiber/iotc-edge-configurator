@@ -7,12 +7,15 @@ import {
 } from '../main/models/iotCentral';
 import {
     IEndpoint,
-    IBrowseNodesRequest
+    IBrowseNodesRequest,
+    IAdapterConfiguration
 } from '../main/models/industrialConnect';
 
 // Main
 const Ipc_Log = 'Ipc_Log';
 const Ipc_OpenConfiguration = 'Ipc_OpenConfiguration';
+const Ipc_OpenAdapterConfiguration = 'Ipc_OpenAdapterConfiguration';
+const Ipc_SaveAdapterConfiguration = 'Ipc_SaveAdapterConfiguration';
 const Ipc_OpenLink = 'Ipc_OpenLink';
 
 // Auth
@@ -41,6 +44,8 @@ declare global {
             // Main
             [Ipc_Log]: (tags: string[], message: string) => Promise<void>;
             [Ipc_OpenConfiguration]: () => Promise<any>;
+            [Ipc_OpenAdapterConfiguration]: () => Promise<IAdapterConfiguration[]>;
+            [Ipc_SaveAdapterConfiguration]: () => Promise<boolean>;
             [Ipc_OpenLink]: (url: string) => Promise<void>;
 
             // Auth
@@ -69,6 +74,8 @@ declare global {
 export {
     Ipc_Log,
     Ipc_OpenConfiguration,
+    Ipc_OpenAdapterConfiguration,
+    Ipc_SaveAdapterConfiguration,
     Ipc_OpenLink,
     Ipc_GetLastOAuthError,
     Ipc_SetLastOAuthError,

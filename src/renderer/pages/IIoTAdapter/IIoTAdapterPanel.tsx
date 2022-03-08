@@ -4,12 +4,14 @@ import { IIotCentralDevice } from '../../../main/models/iotCentral';
 import IIoTAdapterPanelListItem from './IIoTAdapterPanelListItem';
 
 interface IIoTAdapterPanelProps {
+    appId: string;
     appSubdomain: string;
     devices: IIotCentralDevice[];
 }
 
 const IIoTAdapterPanel: FC<IIoTAdapterPanelProps> = (props: IIoTAdapterPanelProps) => {
     const {
+        appId,
         appSubdomain,
         devices
     } = props;
@@ -29,6 +31,7 @@ const IIoTAdapterPanel: FC<IIoTAdapterPanelProps> = (props: IIoTAdapterPanelProp
                                                 return (
                                                     <IIoTAdapterPanelListItem
                                                         key={device.id}
+                                                        appId={appId}
                                                         appSubdomain={appSubdomain}
                                                         deviceId={device.id}
                                                         deviceName={device.displayName}

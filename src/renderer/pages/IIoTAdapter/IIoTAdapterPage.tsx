@@ -66,11 +66,12 @@ const IIoTAdapterPage: FC = observer(() => {
                             </Item>
                         </Item.Group>
                         <IIoTAdapterPanel
+                            appId={appId}
                             appSubdomain={appSubdomain}
                             devices={iotCentralStore.mapAppDevices.get(appId)}
                         />
                     </Segment>
-                    <Dimmer active={iotCentralStore.waitingOnApiCall} inverted>
+                    <Dimmer active={iotCentralStore.waitingIotCentralCall} inverted>
                         <Loader>Pending...</Loader>
                     </Dimmer>
                 </Grid.Column>

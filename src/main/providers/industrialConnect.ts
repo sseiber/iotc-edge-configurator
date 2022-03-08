@@ -13,9 +13,11 @@ import { IoTCentralBaseDomain } from '../models/iotCentral';
 import {
     IndustrialConnectCommands,
     IEndpoint,
-    IBrowseNodesRequest
+    IBrowseNodesRequest,
+    IAdapterConfiguration
 } from '../models/industrialConnect';
 import { requestApi } from '../utils';
+import store, { StoreKeys } from '../store';
 
 const ModuleName = 'IndustrialConnectProvider';
 
@@ -59,6 +61,42 @@ export class IndustrialConnectProvider extends AppProvider {
             }
 
             return browseNodesResponseFilePath;
+        });
+
+        this.ipcMain.handle(contextBridgeTypes.Ipc_OpenAdapterConfiguration, async (_event: IpcMainInvokeEvent): Promise<IAdapterConfiguration[]> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_OpenAdapterConfiguration} handler`);
+
+            let adapterConfig;
+
+            try {
+                adapterConfig = store.get(StoreKeys.adapterConfigCache);
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_OpenAdapterConfiguration} handler: ${ex.message}`);
+            }
+
+            return adapterConfig;
+        });
+
+        this.ipcMain.handle(contextBridgeTypes.Ipc_SaveAdapterConfiguration, async (_event: IpcMainInvokeEvent): Promise<boolean> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_SaveAdapterConfiguration} handler`);
+
+            let result;
+
+            try {
+                // const adapterConfigs = store.get(StoreKeys.adapterConfigCache);
+                // const index = adapterConfigs.indexOf('');
+                // if (index !== -1) {
+                //     return true;
+                // }
+
+                result = true;
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_SaveAdapterConfiguration} handler: ${ex.message}`);
+            }
+
+            return result;
         });
     }
 
@@ -115,8 +153,8 @@ export class IndustrialConnectProvider extends AppProvider {
                     Authorization: `Bearer ${accessToken}`
                 },
                 data: {
-                    connectionTimeout: 10,
-                    responseTimeout: 10,
+                    connectionTimeout: 30,
+                    responseTimeout: 30,
                     request: {
                         browseNodesRequest
                     }

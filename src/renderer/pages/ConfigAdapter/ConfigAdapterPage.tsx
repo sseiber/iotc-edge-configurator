@@ -2,7 +2,7 @@ import React, { SyntheticEvent, FormEvent, FC, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { useAsyncEffect } from 'use-async-effect';
-import { Button, Divider, Form, FormProps, Grid, Header, Message, Segment, DropdownProps, Input, Dimmer, Loader, Item } from 'semantic-ui-react';
+import { Button, Divider, Form, FormProps, Grid, Header, Message, Segment, DropdownProps, Input, Dimmer, Loader, Item, Progress, Label } from 'semantic-ui-react';
 import { useStore } from '../../stores/store';
 import { useInfoDialog, showInfoDialog } from '../../components/InfoDialogContext';
 import {
@@ -16,30 +16,36 @@ import {
     // IBrowseNodesConfig,
     // IAdapterConfiguration
 } from '../../../main/models/industrialConnect';
+import { createSelectOptionsFromEnum } from '../../utils';
 
 const ConfigAdapterPage: FC = observer(() => {
     const location = useLocation();
     const infoDialogContext = useInfoDialog();
     const {
+        mainStore,
         iotCentralStore
     } = useStore();
 
-    const [opcEndpointUri, setOpcEndpointUri] = useState('');
-    const [securityMode, setSecurityMode] = useState<SecurityMode>(SecurityMode.Lowest);
-    const [endpointCredentialType, setEndpointCredentialType] = useState<EndpointCredentialType>(EndpointCredentialType.Anonymous);
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [startNode, setStartNode] = useState('');
-    const [nodeDepth, setNodeDepth] = useState(1);
-    const [nodeClasses, setNodeClasses] = useState<OpcNodeClass[]>([]);
-    const [nodeAttributes, setNodeAttributes] = useState<OpcAttribute[]>([]);
-
+    const appId = (location.state as any).appId;
     const appSubdomain = (location.state as any).appSubdomain;
     const deviceId = (location.state as any).deviceId;
     const deviceName = (location.state as any).deviceName;
 
+    const deviceConfig = mainStore.getCachedDeviceConfiguration(appId, deviceId);
+
+    const [opcEndpointUri, setOpcEndpointUri] = useState(deviceConfig.testConnection.opcEndpointUri);
+    const [securityMode, setSecurityMode] = useState<SecurityMode>(deviceConfig.testConnection.securityMode);
+    const [endpointCredentialType, setEndpointCredentialType] = useState<EndpointCredentialType>(deviceConfig.testConnection.credentials.CredentialType);
+    const [username, setUsername] = useState(deviceConfig.testConnection.credentials.Username);
+    const [password, setPassword] = useState(deviceConfig.testConnection.credentials.Password);
+    const [startNode, setStartNode] = useState(deviceConfig.browseNodes.startNode);
+    const [nodeDepth, setNodeDepth] = useState(deviceConfig.browseNodes.depth);
+    const [nodeClasses, setNodeClasses] = useState<OpcNodeClass[]>(deviceConfig.browseNodes.requestedNodeClasses);
+    const [nodeAttributes, setNodeAttributes] = useState<OpcAttribute[]>(deviceConfig.browseNodes.requestedAttributes);
+
     useAsyncEffect(async isMounted => {
         try {
+            await mainStore.openAdapterConfiguration();
             await iotCentralStore.getDeviceModules(deviceId);
 
             if (!isMounted()) {
@@ -56,8 +62,8 @@ const ConfigAdapterPage: FC = observer(() => {
         }
     }, []);
 
-    const onFieldChange = (e: any, fieldId: string) => {
-        switch (fieldId) {
+    const onFieldChange = (e: any) => {
+        switch (e.target.id) {
             case 'opcEndpointUri':
                 setOpcEndpointUri(e.target.value);
                 break;
@@ -140,104 +146,25 @@ const ConfigAdapterPage: FC = observer(() => {
         return;
     };
 
-    const securityModeOptions = [
-        {
-            key: SecurityMode.Lowest,
-            text: SecurityMode.Lowest,
-            value: SecurityMode.Lowest
-        },
-        {
-            key: SecurityMode.Best,
-            text: SecurityMode.Best,
-            value: SecurityMode.Best
-        }
-    ];
+    const securityModeOptions = createSelectOptionsFromEnum(SecurityMode);
 
     const onSecurityModeChange = (_e: SyntheticEvent, props: DropdownProps) => {
         setSecurityMode(props.value as SecurityMode);
     };
 
-    const endpointCredentialTypeOptions = [
-        {
-            key: EndpointCredentialType.Anonymous,
-            text: EndpointCredentialType.Anonymous,
-            value: EndpointCredentialType.Anonymous
-        },
-        {
-            key: EndpointCredentialType.Username,
-            text: EndpointCredentialType.Username,
-            value: EndpointCredentialType.Username
-        }
-    ];
+    const endpointCredentialTypeOptions = createSelectOptionsFromEnum(EndpointCredentialType);
 
     const onEndpointCredentialTypeChange = (_e: SyntheticEvent, props: DropdownProps) => {
         setEndpointCredentialType(props.value as EndpointCredentialType);
     };
 
-    const nodeClassOptions = [
-        {
-            key: OpcNodeClass.Object,
-            text: OpcNodeClass.Object,
-            value: OpcNodeClass.Object
-        },
-        {
-            key: OpcNodeClass.Variable,
-            text: OpcNodeClass.Variable,
-            value: OpcNodeClass.Variable
-        }
-    ];
+    const nodeClassOptions = createSelectOptionsFromEnum(OpcNodeClass);
 
     const onNodeClassesChange = (_e: SyntheticEvent, props: DropdownProps) => {
         setNodeClasses(props.value as OpcNodeClass[]);
     };
 
-    const nodeAttributeOptions = [
-        {
-            key: OpcAttribute.NodeClass,
-            text: OpcAttribute.NodeClass,
-            value: OpcAttribute.NodeClass
-        },
-        {
-            key: OpcAttribute.BrowseName,
-            text: OpcAttribute.BrowseName,
-            value: OpcAttribute.BrowseName
-        },
-        {
-            key: OpcAttribute.DisplayName,
-            text: OpcAttribute.DisplayName,
-            value: OpcAttribute.DisplayName
-        },
-        {
-            key: OpcAttribute.Description,
-            text: OpcAttribute.Description,
-            value: OpcAttribute.Description
-        },
-        {
-            key: OpcAttribute.DataType,
-            text: OpcAttribute.DataType,
-            value: OpcAttribute.DataType
-        },
-        {
-            key: OpcAttribute.Value,
-            text: OpcAttribute.Value,
-            value: OpcAttribute.Value
-        },
-        {
-            key: OpcAttribute.ValueRank,
-            text: OpcAttribute.ValueRank,
-            value: OpcAttribute.ValueRank
-        },
-        {
-            key: OpcAttribute.ArrayDimensions,
-            text: OpcAttribute.ArrayDimensions,
-            value: OpcAttribute.ArrayDimensions
-        },
-        {
-            key: OpcAttribute.UserAccessLevel,
-            text: OpcAttribute.UserAccessLevel,
-            value: OpcAttribute.UserAccessLevel
-        }
-    ];
+    const nodeAttributeOptions = createSelectOptionsFromEnum(OpcAttribute);
 
     const onNodeAttributesChange = (_e: SyntheticEvent, props: DropdownProps) => {
         setNodeAttributes(props.value as OpcAttribute[]);
@@ -270,17 +197,18 @@ const ConfigAdapterPage: FC = observer(() => {
                         */}
                         <Header attached="top" as="h3" color={'blue'}>OPCUA server connection</Header>
                         <Segment attached="bottom">
-                            <Form size={'small'} loading={iotCentralStore.waitingOnApiCall} onSubmit={testOpcuaConnection}>
+                            <Form size={'small'} onSubmit={testOpcuaConnection}>
                                 <Form.Field width={16}>
                                     <label>Uri:</label>
                                     <Input
+                                        id="opcEndpointUri"
                                         placeholder="Example: opc.tcp://192.168.4.101:4840"
                                         value={opcEndpointUri}
-                                        onChange={(e) => onFieldChange(e, 'opcEndpointUri')}
+                                        onChange={onFieldChange}
                                     />
                                 </Form.Field>
                                 <Form.Dropdown
-                                    width={4}
+                                    width={3}
                                     label="Security mode:"
                                     selection
                                     options={securityModeOptions}
@@ -288,7 +216,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     onChange={onSecurityModeChange}
                                 />
                                 <Form.Dropdown
-                                    width={4}
+                                    width={3}
                                     label="Credentials:"
                                     selection
                                     options={endpointCredentialTypeOptions}
@@ -302,15 +230,17 @@ const ConfigAdapterPage: FC = observer(() => {
                                                 <Form.Field width={16}>
                                                     <label>Username:</label>
                                                     <Input
+                                                        id="username"
                                                         value={username}
-                                                        onChange={(e) => onFieldChange(e, 'username')}
+                                                        onChange={onFieldChange}
                                                     />
                                                 </Form.Field>
                                                 <Form.Field width={16}>
                                                     <label>Password:</label>
                                                     <Input
+                                                        id="password"
                                                         value={password}
-                                                        onChange={(e) => onFieldChange(e, 'password')}
+                                                        onChange={onFieldChange}
                                                     />
                                                 </Form.Field>
                                             </Segment>
@@ -318,7 +248,24 @@ const ConfigAdapterPage: FC = observer(() => {
                                         : null
                                 }
                                 <Divider hidden />
-                                <Button size={'tiny'} type='submit'>Test Connection</Button>
+                                <Grid>
+                                    <Grid.Column width={3}>
+                                        <Button fluid size={'tiny'} type="submit" content="Test Connection" />
+                                    </Grid.Column>
+                                    {
+                                        iotCentralStore.waitingIndustrialConnectCall
+                                            ? (
+                                                <Grid.Column width={4} verticalAlign={'middle'}>
+                                                    <Progress percent={100} active content="Testing connection" />
+                                                </Grid.Column>
+                                            )
+                                            : (
+                                                <Grid.Column width={4} verticalAlign={'middle'}>
+                                                    <Label size={'small'} color={iotCentralStore.connectionGood ? 'green' : 'grey'}>{iotCentralStore.connectionGood ? 'Verified' : 'Unverified'}</Label>
+                                                </Grid.Column>
+                                            )
+                                    }
+                                </Grid>
                             </Form>
                         </Segment>
                         {/*
@@ -326,34 +273,40 @@ const ConfigAdapterPage: FC = observer(() => {
                         */}
                         <Header attached="top" as="h3" color={'blue'}>Browse OPCUA Server</Header>
                         <Segment attached="bottom">
-                            <Form size={'small'} loading={iotCentralStore.waitingOnApiCall} onSubmit={browseNodes}>
+                            <Form size={'small'} onSubmit={browseNodes}>
                                 <Form.Field width={16}>
                                     <label>Starting node:</label>
                                     <Input
+                                        id="startNode"
                                         placeholder="Example: ns=0;i=85"
                                         value={startNode}
-                                        onChange={(e) => onFieldChange(e, 'startNode')}
+                                        onChange={onFieldChange}
                                     />
                                 </Form.Field>
                                 <Form.Field width={2}>
                                     <label>Depth:</label>
                                     <Input
+                                        id="nodeDepth"
                                         value={nodeDepth}
-                                        onChange={(e) => onFieldChange(e, 'nodeDepth')}
+                                        onChange={onFieldChange}
                                     />
                                 </Form.Field>
                                 <Form.Dropdown
-                                    width={4}
+                                    width={6}
                                     label="Node classes:"
+                                    multiple
                                     selection
                                     options={nodeClassOptions}
+                                    defaultValue={nodeClasses}
                                     onChange={onNodeClassesChange}
                                 />
                                 <Form.Dropdown
-                                    width={4}
+                                    width={6}
                                     label="Node attributes:"
+                                    multiple
                                     selection
                                     options={nodeAttributeOptions}
+                                    defaultValue={nodeAttributes}
                                     onChange={onNodeAttributesChange}
                                 />
                                 <Divider hidden />
@@ -361,7 +314,7 @@ const ConfigAdapterPage: FC = observer(() => {
                             </Form>
                         </Segment>
                     </Segment>
-                    <Dimmer active={iotCentralStore.waitingOnApiCall} inverted>
+                    <Dimmer active={iotCentralStore.waitingIotCentralCall} inverted>
                         <Loader>Pending...</Loader>
                     </Dimmer>
                 </Grid.Column>
