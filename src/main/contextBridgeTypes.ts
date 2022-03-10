@@ -6,6 +6,8 @@ import {
     IIotCentralModule
 } from '../main/models/iotCentral';
 import {
+    IIndustrialDirectMethodResponse,
+    IApiContext,
     IEndpoint,
     IBrowseNodesRequest,
     IAdapterConfiguration
@@ -35,8 +37,8 @@ const Ipc_GetIotcDevices = 'Ipc_GetIotcDevices';
 const Ipc_GetIotcDeviceModules = 'Ipc_GetIotcDeviceModules';
 
 // Industrial Connect
-const Ipc_TestIndustrialConnectEndpoint = 'Ipc_TestIndustrialConnectEndpoint';
-const Ipc_BrowseNodes = 'Ipc_BrowseNodes';
+const Ipc_TestEndpoint = 'Ipc_TestEndpoint';
+const Ipc_FetchNodes = 'Ipc_FetchNodes';
 
 declare global {
     interface Window {
@@ -65,8 +67,8 @@ declare global {
             [Ipc_GetIotcDeviceModules]: (appSubdomain: string, deviceId: string) => Promise<IIotCentralModule[]>;
 
             // Industrial Connect
-            [Ipc_TestIndustrialConnectEndpoint]: (opcEndpoint: IEndpoint, appSubdomain: string, deviceId: string, moduleName: string) => Promise<boolean>;
-            [Ipc_BrowseNodes]: (browseNodesRequest: IBrowseNodesRequest, appSubdomain: string, deviceId: string, moduleName: string) => Promise<string>;
+            [Ipc_TestEndpoint]: (apiContext: IApiContext, opcEndpoint: IEndpoint) => Promise<IIndustrialDirectMethodResponse>;
+            [Ipc_FetchNodes]: (apiContext: IApiContext, browseNodesRequest: IBrowseNodesRequest) => Promise<IIndustrialDirectMethodResponse>;
         };
     }
 }
@@ -89,6 +91,6 @@ export {
     Ipc_GetIotcApps,
     Ipc_GetIotcDevices,
     Ipc_GetIotcDeviceModules,
-    Ipc_TestIndustrialConnectEndpoint,
-    Ipc_BrowseNodes
+    Ipc_TestEndpoint,
+    Ipc_FetchNodes
 };

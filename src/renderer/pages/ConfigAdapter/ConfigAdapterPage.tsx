@@ -1,4 +1,4 @@
-import React, { SyntheticEvent, FormEvent, FC } from 'react';
+import React, { ChangeEvent, SyntheticEvent, FormEvent, FC } from 'react';
 import { useLocation } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { useAsyncEffect } from 'use-async-effect';
@@ -6,6 +6,7 @@ import { Button, Divider, Form, FormProps, Grid, Header, Message, Segment, Dropd
 import { useStore } from '../../stores/store';
 import { useInfoDialog, showInfoDialog } from '../../components/InfoDialogContext';
 import {
+    IApiContext,
     SecurityMode,
     EndpointCredentialType,
     IEndpoint,
@@ -20,7 +21,8 @@ const ConfigAdapterPage: FC = observer(() => {
     const infoDialogContext = useInfoDialog();
     const {
         mainStore,
-        iotCentralStore
+        iotCentralStore,
+        industrialConnectStore
     } = useStore();
 
     const appId = (location.state as any).appId;
@@ -31,8 +33,8 @@ const ConfigAdapterPage: FC = observer(() => {
     useAsyncEffect(
         async (isMounted) => {
             try {
-                await mainStore.loadAdapterConfiguration(appId, deviceId);
                 await iotCentralStore.getDeviceModules(deviceId);
+                await mainStore.loadAdapterConfiguration(appId, deviceId);
 
                 if (!isMounted()) {
                     return;
@@ -90,7 +92,9 @@ const ConfigAdapterPage: FC = observer(() => {
         mainStore.updateAdapterConfig('browseNodes.requestedAttributes', value);
     };
 
-    const onFieldChange = (e: any) => {
+    const onFieldChange = (e: ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault();
+
         switch (e.target.id) {
             case 'opcEndpointUri':
                 setOpcEndpointUri(e.target.value);
@@ -104,9 +108,13 @@ const ConfigAdapterPage: FC = observer(() => {
             case 'startNode':
                 setStartNode(e.target.value);
                 break;
-            case 'nodeDepth':
-                setNodeDepth(e.target.value);
+            case 'nodeDepth': {
+                const value = e.target.value !== '' ? parseInt(e.target.value, 10) : 0;
+                if (!isNaN(value)) {
+                    setNodeDepth(value);
+                }
                 break;
+            }
         }
     };
 
@@ -135,7 +143,13 @@ const ConfigAdapterPage: FC = observer(() => {
         };
 
         await mainStore.saveAdapterConfig();
-        await iotCentralStore.testIndustrialConnectEndpoint(opcEndpoint, appSubdomain, deviceId);
+
+        const apiContext: IApiContext = {
+            appSubdomain,
+            deviceId,
+            moduleName: iotCentralStore.mapDeviceModules.get(deviceId)[0].name
+        };
+        await industrialConnectStore.testEndpoint(apiContext, opcEndpoint);
     };
 
     const browseNodes = async (e: FormEvent, _formProps: FormProps) => {
@@ -171,32 +185,38 @@ const ConfigAdapterPage: FC = observer(() => {
         };
 
         await mainStore.saveAdapterConfig();
-        await iotCentralStore.browseNodes(browseNodesRequest, appSubdomain, deviceId);
+
+        const apiContext: IApiContext = {
+            appSubdomain,
+            deviceId,
+            moduleName: iotCentralStore.mapDeviceModules.get(deviceId)[0].name
+        };
+        await industrialConnectStore.fetchNodes(apiContext, browseNodesRequest);
     };
 
     const onSaveConfig = async () => {
         return;
     };
 
-    const securityModeOptions = createSelectOptionsFromEnum(SecurityMode);
+    const securityModeOptions = createSelectOptionsFromEnum(SecurityMode, false);
 
     const onSecurityModeChange = (_e: SyntheticEvent, props: DropdownProps) => {
         setSecurityMode(props.value as SecurityMode);
     };
 
-    const endpointCredentialTypeOptions = createSelectOptionsFromEnum(EndpointCredentialType);
+    const endpointCredentialTypeOptions = createSelectOptionsFromEnum(EndpointCredentialType, false);
 
     const onEndpointCredentialTypeChange = (_e: SyntheticEvent, props: DropdownProps) => {
         setEndpointCredentialType(props.value as EndpointCredentialType);
     };
 
-    const nodeClassOptions = createSelectOptionsFromEnum(OpcNodeClass);
+    const nodeClassOptions = createSelectOptionsFromEnum(OpcNodeClass, false);
 
     const onNodeClassesChange = (_e: SyntheticEvent, props: DropdownProps) => {
         setNodeClasses(props.value as OpcNodeClass[]);
     };
 
-    const nodeAttributeOptions = createSelectOptionsFromEnum(OpcAttribute);
+    const nodeAttributeOptions = createSelectOptionsFromEnum(OpcAttribute, false);
 
     const onNodeAttributesChange = (_e: SyntheticEvent, props: DropdownProps) => {
         setNodeAttributes(props.value as OpcAttribute[]);
@@ -285,7 +305,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                         <Button fluid size={'tiny'} type="submit" content="Test Connection" />
                                     </Grid.Column>
                                     {
-                                        iotCentralStore.waitingIndustrialConnectCall
+                                        industrialConnectStore.waitingOnEndpointVerification
                                             ? (
                                                 <Grid.Column width={4} verticalAlign={'middle'}>
                                                     <Progress percent={100} active content="Testing connection" />
@@ -293,7 +313,12 @@ const ConfigAdapterPage: FC = observer(() => {
                                             )
                                             : (
                                                 <Grid.Column width={4} verticalAlign={'middle'}>
-                                                    <Label size={'small'} color={iotCentralStore.connectionGood ? 'green' : 'grey'}>{iotCentralStore.connectionGood ? 'Verified' : 'Unverified'}</Label>
+                                                    <Label
+                                                        size={'small'}
+                                                        color={industrialConnectStore.endpointVerified ? 'green' : 'grey'}
+                                                        content={industrialConnectStore.endpointVerified ? '\u00A0\u00A0\u00A0Verified' : '\u00A0\u00A0\u00A0Unverified'}
+                                                        icon={industrialConnectStore.endpointVerified ? 'check circle' : 'delete'}
+                                                    />
                                                 </Grid.Column>
                                             )
                                     }
@@ -329,7 +354,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     multiple
                                     selection
                                     options={nodeClassOptions}
-                                    defaultValue={mainStore.adapterConfig.browseNodes.requestedNodeClasses}
+                                    value={mainStore.adapterConfig.browseNodes.requestedNodeClasses}
                                     onChange={onNodeClassesChange}
                                 />
                                 <Form.Dropdown
@@ -338,7 +363,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     multiple
                                     selection
                                     options={nodeAttributeOptions}
-                                    defaultValue={mainStore.adapterConfig.browseNodes.requestedAttributes}
+                                    value={mainStore.adapterConfig.browseNodes.requestedAttributes}
                                     onChange={onNodeAttributesChange}
                                 />
                                 <Divider hidden />

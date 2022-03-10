@@ -5,10 +5,6 @@ import {
     IIotCentralDevice,
     IIotCentralModule
 } from '../../main/models/iotCentral';
-import {
-    IEndpoint,
-    IBrowseNodesRequest
-} from '../../main/models/industrialConnect';
 
 export class IotCentralStore {
     constructor() {
@@ -16,13 +12,10 @@ export class IotCentralStore {
     }
 
     public waitingIotCentralCall = false;
-    public waitingIndustrialConnectCall = false;
     public mapApps: Map<string, IIotCentralApp> = new Map<string, IIotCentralApp>();
     public mapAppDevices: Map<string, IIotCentralDevice[]> = new Map<string, IIotCentralDevice[]>();
     public mapDeviceApp: Map<string, IIotCentralApp> = new Map<string, IIotCentralApp>();
     public mapDeviceModules: Map<string, IIotCentralModule[]> = new Map<string, IIotCentralModule[]>();
-    public connectionGood = false;
-    public browsedNodesResultFilePath: string;
 
     public serviceError = '';
 
@@ -132,54 +125,6 @@ export class IotCentralStore {
         finally {
             runInAction(() => {
                 this.waitingIotCentralCall = false;
-            });
-        }
-    }
-
-    public async testIndustrialConnectEndpoint(opcEndpoint: IEndpoint, appSubdomain: string, deviceId: string): Promise<void> {
-        runInAction(() => {
-            this.waitingIndustrialConnectCall = true;
-        });
-
-        try {
-            const moduleName = this.mapDeviceModules.get(deviceId)[0].name;
-            const connectionGood = await window.ipcApi[contextBridgeTypes.Ipc_TestIndustrialConnectEndpoint](opcEndpoint, appSubdomain, deviceId, moduleName);
-            runInAction(() => {
-                this.connectionGood = connectionGood;
-            });
-        }
-        catch (ex) {
-            runInAction(() => {
-                this.serviceError = `An error occurred while testing the connection to the OPCUA server: ${ex.message}`;
-            });
-        }
-        finally {
-            runInAction(() => {
-                this.waitingIndustrialConnectCall = false;
-            });
-        }
-    }
-
-    public async browseNodes(browseNodesRequest: IBrowseNodesRequest, appSubdomain: string, deviceId: string): Promise<void> {
-        runInAction(() => {
-            this.waitingIndustrialConnectCall = true;
-        });
-
-        try {
-            const moduleName = this.mapDeviceModules.get(deviceId)[0].name;
-            const browsedNodesResultFilePath = await window.ipcApi[contextBridgeTypes.Ipc_BrowseNodes](browseNodesRequest, appSubdomain, deviceId, moduleName);
-            runInAction(() => {
-                this.browsedNodesResultFilePath = browsedNodesResultFilePath;
-            });
-        }
-        catch (ex) {
-            runInAction(() => {
-                this.serviceError = `An error occurred while attempting to browse the node heirarchy on the OPCUA server: ${ex.message}`;
-            });
-        }
-        finally {
-            runInAction(() => {
-                this.waitingIndustrialConnectCall = false;
             });
         }
     }

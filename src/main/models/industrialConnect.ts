@@ -1,16 +1,29 @@
+export interface IIndustrialDirectMethodResponse {
+    status: number;
+    message: string;
+    payload: any;
+}
+
+export interface IApiContext {
+    appSubdomain: string;
+    deviceId: string;
+    moduleName: string;
+}
+
 export enum IndustrialConnectCommands {
     TestConnection = 'TestConnection_v1',
-    BrowseNodes = 'BrowseNodes_v1'
+    BrowseNodes = 'BrowseNodes_v1',
+    FetchBrowsedNodes = 'FetchBrowsedNodes_v1'
 }
 
 export enum SecurityMode {
-    Lowest,
-    Best
+    Lowest = 'Lowest',
+    Best = 'Best'
 }
 
 export enum EndpointCredentialType {
-    Anonymous,
-    Username
+    Anonymous = 'Anonymous',
+    Username = 'Username'
 }
 
 export interface IEndpointCredentials {
@@ -25,21 +38,36 @@ export interface IEndpoint {
     credentials: IEndpointCredentials;
 }
 
+// export enum OpcNodeClass {
+//     Object = 1,
+//     Variable = 2
+// }
 export enum OpcNodeClass {
-    Object = 1,
-    Variable = 2,
+    Object = 'Object',
+    Variable = 'Variable'
 }
 
+// export enum OpcAttribute {
+//     NodeClass = 2,
+//     BrowseName = 3,
+//     DisplayName = 4,
+//     Description = 5,
+//     Value = 13,
+//     DataType = 14,
+//     ValueRank = 15,
+//     ArrayDimensions = 16,
+//     UserAccessLevel = 18
+// }
 export enum OpcAttribute {
-    NodeClass = 2,
-    BrowseName = 3,
-    DisplayName = 4,
-    Description = 5,
-    Value = 13,
-    DataType = 14,
-    ValueRank = 15,
-    ArrayDimensions = 16,
-    UserAccessLevel = 18,
+    NodeClass = 'NodeClass',
+    BrowseName = 'BrowseName',
+    DisplayName = 'DisplayName',
+    Description = 'Description',
+    Value = 'Value',
+    DataType = 'DataType',
+    ValueRank = 'ValueRank',
+    ArrayDimensions = 'ArrayDimensions',
+    UserAccessLevel = 'UserAccessLevel'
 }
 
 export interface IBrowseNodesRequest {

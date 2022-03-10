@@ -1,5 +1,5 @@
-export function createSelectOptionsFromEnum(enumObject: any): any[] {
-    const length = Object.keys(enumObject).length / 2;
+export function createSelectOptionsFromEnum(enumObject: any, valueEnum: boolean): any[] {
+    const length = Object.keys(enumObject).length / (valueEnum ? 2 : 1);
 
     const options = [];
     let index = 0;
@@ -14,7 +14,7 @@ export function createSelectOptionsFromEnum(enumObject: any): any[] {
             {
                 key: enumObject[enumObject[prop]],
                 text: enumObject[prop],
-                value: enumObject[enumObject[prop]]
+                value: valueEnum ? enumObject[enumObject[prop]] : enumObject[prop]
             }
         );
 
