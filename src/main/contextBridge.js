@@ -28,6 +28,6 @@ contextBridge.exposeInMainWorld('ipcApi', {
     [contextBridgeTypes.Ipc_GetIotcDeviceModules]: (appSubdomain, deviceId) => ipcRenderer.invoke(contextBridgeTypes.Ipc_GetIotcDeviceModules, appSubdomain, deviceId),
 
     // Industrial Connect
-    [contextBridgeTypes.Ipc_TestEndpoint]: (apiContext, opcEndpoint) => ipcRenderer.invoke(contextBridgeTypes.Ipc_TestEndpoint, apiContext, opcEndpoint),
+    [contextBridgeTypes.Ipc_TestConnection]: (apiContext, opcEndpoint) => ipcRenderer.invoke(contextBridgeTypes.Ipc_TestConnection, apiContext, opcEndpoint),
     [contextBridgeTypes.Ipc_FetchNodes]: (apiContext, browseNodesRequest) => ipcRenderer.invoke(contextBridgeTypes.Ipc_FetchNodes, apiContext, browseNodesRequest)
 });

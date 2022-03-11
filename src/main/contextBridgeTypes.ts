@@ -37,7 +37,7 @@ const Ipc_GetIotcDevices = 'Ipc_GetIotcDevices';
 const Ipc_GetIotcDeviceModules = 'Ipc_GetIotcDeviceModules';
 
 // Industrial Connect
-const Ipc_TestEndpoint = 'Ipc_TestEndpoint';
+const Ipc_TestConnection = 'Ipc_TestConnection';
 const Ipc_FetchNodes = 'Ipc_FetchNodes';
 
 declare global {
@@ -67,7 +67,7 @@ declare global {
             [Ipc_GetIotcDeviceModules]: (appSubdomain: string, deviceId: string) => Promise<IIotCentralModule[]>;
 
             // Industrial Connect
-            [Ipc_TestEndpoint]: (apiContext: IApiContext, opcEndpoint: IEndpoint) => Promise<IIndustrialDirectMethodResponse>;
+            [Ipc_TestConnection]: (apiContext: IApiContext, opcEndpoint: IEndpoint) => Promise<IIndustrialDirectMethodResponse>;
             [Ipc_FetchNodes]: (apiContext: IApiContext, browseNodesRequest: IBrowseNodesRequest) => Promise<IIndustrialDirectMethodResponse>;
         };
     }
@@ -91,6 +91,6 @@ export {
     Ipc_GetIotcApps,
     Ipc_GetIotcDevices,
     Ipc_GetIotcDeviceModules,
-    Ipc_TestEndpoint,
+    Ipc_TestConnection,
     Ipc_FetchNodes
 };

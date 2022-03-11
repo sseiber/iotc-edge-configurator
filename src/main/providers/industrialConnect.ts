@@ -16,16 +16,13 @@ import {
     IIndustrialDirectMethodResponse,
     IndustrialConnectCommands,
     IEndpoint,
-    IBrowseNodesRequest,
-    IAdapterConfiguration,
-    emptyAdapterConfig
+    IBrowseNodesRequest
 } from '../models/industrialConnect';
 import {
     requestApi,
     fileStream,
     sleep
 } from '../utils';
-import store, { StoreKeys } from '../store';
 import {
     gzipSync,
     gunzipSync
@@ -47,25 +44,25 @@ export class IndustrialConnectProvider extends AppProvider {
     }
 
     public registerIpcEventHandlers(): void {
-        this.ipcMain.handle(contextBridgeTypes.Ipc_TestEndpoint, async (_event: IpcMainInvokeEvent, apiContext: IApiContext, opcEndpoint: IEndpoint): Promise<IIndustrialDirectMethodResponse> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_TestEndpoint} handler`);
+        this.ipcMain.handle(contextBridgeTypes.Ipc_TestConnection, async (_event: IpcMainInvokeEvent, apiContext: IApiContext, opcEndpoint: IEndpoint): Promise<IIndustrialDirectMethodResponse> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_TestConnection} handler`);
 
-            let testEndpointResponse: IIndustrialDirectMethodResponse = {
+            let testConnectionResponse: IIndustrialDirectMethodResponse = {
                 status: 500,
                 message: ``,
                 payload: {}
             };
 
             try {
-                testEndpointResponse = await this.testEndpoint(opcEndpoint, apiContext);
+                testConnectionResponse = await this.testConnection(opcEndpoint, apiContext);
             }
             catch (ex) {
-                testEndpointResponse.message = `Error during ${contextBridgeTypes.Ipc_TestEndpoint} handler: ${ex.message}`;
+                testConnectionResponse.message = `Error during ${contextBridgeTypes.Ipc_TestConnection} handler: ${ex.message}`;
 
-                logger.log([ModuleName, 'error'], testEndpointResponse.message);
+                logger.log([ModuleName, 'error'], testConnectionResponse.message);
             }
 
-            return testEndpointResponse;
+            return testConnectionResponse;
         });
 
         this.ipcMain.handle(contextBridgeTypes.Ipc_FetchNodes, async (_event: IpcMainInvokeEvent, apiContext: IApiContext, browseNodesRequest: IBrowseNodesRequest): Promise<IIndustrialDirectMethodResponse> => {
@@ -88,56 +85,10 @@ export class IndustrialConnectProvider extends AppProvider {
 
             return fetchNodesResponse;
         });
-
-        this.ipcMain.handle(contextBridgeTypes.Ipc_GetAdapterConfiguration, async (_event: IpcMainInvokeEvent, appId: string, deviceId: string): Promise<IAdapterConfiguration> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetAdapterConfiguration} handler`);
-
-            let adapterConfig;
-
-            try {
-                const configCache = store.get(StoreKeys.adapterConfigCache);
-                adapterConfig = configCache.find((config) => config.appId === appId && config.deviceId === deviceId);
-            }
-            catch (ex) {
-                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetAdapterConfiguration} handler: ${ex.message}`);
-            }
-
-            return adapterConfig || {
-                ...emptyAdapterConfig,
-                appId,
-                deviceId
-            };
-        });
-
-        this.ipcMain.handle(contextBridgeTypes.Ipc_SetAdapterConfiguration, async (_event: IpcMainInvokeEvent, adapterConfig: IAdapterConfiguration): Promise<boolean> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_SetAdapterConfiguration} handler`);
-
-            let result = true;
-
-            try {
-                const configCache = store.get(StoreKeys.adapterConfigCache);
-                const cacheIndex = configCache.findIndex((config) => config.appId === adapterConfig.appId && config.deviceId === adapterConfig.deviceId);
-                if (cacheIndex >= 0) {
-                    configCache[cacheIndex] = adapterConfig;
-                }
-                else {
-                    configCache.push(adapterConfig);
-                }
-
-                store.set(StoreKeys.adapterConfigCache, configCache);
-            }
-            catch (ex) {
-                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_SetAdapterConfiguration} handler: ${ex.message}`);
-
-                result = false;
-            }
-
-            return result;
-        });
     }
 
-    private async testEndpoint(opcEndpoint: IEndpoint, apiContext: IApiContext): Promise<IIndustrialDirectMethodResponse> {
-        logger.log([ModuleName, 'info'], `testEndpoint`);
+    private async testConnection(opcEndpoint: IEndpoint, apiContext: IApiContext): Promise<IIndustrialDirectMethodResponse> {
+        logger.log([ModuleName, 'info'], `testConnection`);
 
         const finalResponse: IIndustrialDirectMethodResponse = {
             status: 500,
@@ -157,23 +108,23 @@ export class IndustrialConnectProvider extends AppProvider {
                 10
             );
 
-            const testEndpointResponse = await requestApi(requestConfig);
+            const testConnectionResponse = await requestApi(requestConfig);
 
-            finalResponse.status = testEndpointResponse?.payload?.responseCode || testEndpointResponse.status;
+            finalResponse.status = testConnectionResponse?.payload?.responseCode || testConnectionResponse.status;
 
-            if (testEndpointResponse.status === 201 && testEndpointResponse.payload?.responseCode === 200) {
+            if (testConnectionResponse.status === 201 && testConnectionResponse.payload?.responseCode === 200) {
                 finalResponse.payload = {
                     endpointVerified: true
                 };
             }
             else {
-                finalResponse.message = `Error: status: ${testEndpointResponse.status}, payload responseCode: ${testEndpointResponse.payload?.responseCode}`;
+                finalResponse.message = `Error: status: ${testConnectionResponse.status}, payload responseCode: ${testConnectionResponse.payload?.responseCode}`;
 
                 logger.log([ModuleName, 'error'], finalResponse.message);
             }
         }
         catch (ex) {
-            finalResponse.message = `Error during testEndpoint: ${ex.message}`;
+            finalResponse.message = `Error during testConnection: ${ex.message}`;
 
             logger.log([ModuleName, 'error'], finalResponse.message);
         }
@@ -191,8 +142,8 @@ export class IndustrialConnectProvider extends AppProvider {
         };
 
         try {
-            const testEndpointResponse = await this.testEndpoint(browseNodesRequest.opcEndpoint, apiContext);
-            if (testEndpointResponse.status !== 200 || testEndpointResponse.payload.endpointVerified !== true) {
+            const testConnectionResponse = await this.testConnection(browseNodesRequest.opcEndpoint, apiContext);
+            if (testConnectionResponse.status !== 200 || testConnectionResponse.payload.endpointVerified !== true) {
                 finalResponse.message = `Unable to connect to the OPCUA endpoint - uri: ${browseNodesRequest.opcEndpoint.uri}`;
                 logger.log([ModuleName, 'error'], finalResponse.message);
 

@@ -78,31 +78,18 @@ export interface IBrowseNodesRequest {
     requestedAttributes: OpcAttribute[];
 }
 
-export interface ITestConnectionConfig {
-    opcEndpointUri: string;
-    securityMode: SecurityMode;
-    credentials: IEndpointCredentials;
-}
-
-export interface IBrowseNodesConfig {
-    startNode: string;
-    depth: number;
-    requestedNodeClasses: OpcNodeClass[];
-    requestedAttributes: OpcAttribute[];
-}
-
 export interface IAdapterConfiguration {
     appId: string;
     deviceId: string;
-    testConnection: ITestConnectionConfig;
-    browseNodes: IBrowseNodesConfig;
+    testConnectionRequest: IEndpoint;
+    browseNodesRequest: IBrowseNodesRequest;
 }
 
 export const emptyAdapterConfig: IAdapterConfiguration = {
     appId: '',
     deviceId: '',
-    testConnection: {
-        opcEndpointUri: '',
+    testConnectionRequest: {
+        uri: '',
         securityMode: SecurityMode.Lowest,
         credentials: {
             credentialType: EndpointCredentialType.Anonymous,
@@ -110,7 +97,16 @@ export const emptyAdapterConfig: IAdapterConfiguration = {
             password: ''
         }
     },
-    browseNodes: {
+    browseNodesRequest: {
+        opcEndpoint: {
+            uri: '',
+            securityMode: SecurityMode.Lowest,
+            credentials: {
+                credentialType: EndpointCredentialType.Anonymous,
+                username: '',
+                password: ''
+            }
+        },
         startNode: '',
         depth: 1,
         requestedNodeClasses: [OpcNodeClass.Object, OpcNodeClass.Variable],

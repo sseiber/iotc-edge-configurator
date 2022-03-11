@@ -9,10 +9,8 @@ import {
     IApiContext,
     SecurityMode,
     EndpointCredentialType,
-    IEndpoint,
     OpcNodeClass,
-    OpcAttribute,
-    IBrowseNodesRequest
+    OpcAttribute
 } from '../../../main/models/industrialConnect';
 import { createSelectOptionsFromEnum } from '../../utils';
 
@@ -56,72 +54,39 @@ const ConfigAdapterPage: FC = observer(() => {
         []
     );
 
-    const setOpcEndpointUri = (value: string): void => {
-        mainStore.updateAdapterConfig('testConnection.opcEndpointUri', value);
-    };
-
-    const setSecurityMode = (value: SecurityMode): void => {
-        mainStore.updateAdapterConfig('testConnection.securityMode', value);
-    };
-
-    const setEndpointCredentialType = (value: EndpointCredentialType): void => {
-        mainStore.updateAdapterConfig('testConnection.credentials.credentialType', value);
-    };
-
-    const setUsername = (value: string): void => {
-        mainStore.updateAdapterConfig('testConnection.credentials.username', value);
-    };
-
-    const setPassword = (value: string): void => {
-        mainStore.updateAdapterConfig('testConnection.credentials.password', value);
-    };
-
-    const setStartNode = (value: string): void => {
-        mainStore.updateAdapterConfig('browseNodes.startNode', value);
-    };
-
-    const setNodeDepth = (value: number): void => {
-        mainStore.updateAdapterConfig('browseNodes.depth', value);
-    };
-
-    const setNodeClasses = (value: OpcNodeClass[]): void => {
-        mainStore.updateAdapterConfig('browseNodes.requestedNodeClasses', value);
-    };
-
-    const setNodeAttributes = (value: OpcAttribute[]): void => {
-        mainStore.updateAdapterConfig('browseNodes.requestedAttributes', value);
-    };
-
     const onFieldChange = (e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
 
         switch (e.target.id) {
-            case 'opcEndpointUri':
-                setOpcEndpointUri(e.target.value);
+            case 'testConnectionUri':
+                mainStore.updateAdapterConfig('testConnectionRequest.uri', e.target.value);
+                mainStore.updateAdapterConfig('browseNodesRequest.opcEndpoint.uri', e.target.value);
                 break;
-            case 'username':
-                setUsername(e.target.value);
+            case 'testConnectionUsername':
+                mainStore.updateAdapterConfig('testConnectionRequest.credentials.username', e.target.value);
+                mainStore.updateAdapterConfig('browseNodesRequest.opcEndpoint.credentials.username', e.target.value);
                 break;
-            case 'password':
-                setPassword(e.target.value);
+            case 'testConnectionPassword':
+                mainStore.updateAdapterConfig('testConnectionRequest.credentials.password', e.target.value);
+                mainStore.updateAdapterConfig('browseNodesRequest.opcEndpoint.credentials.password', e.target.value);
                 break;
-            case 'startNode':
-                setStartNode(e.target.value);
+            case 'browseNodesRequestStartNode':
+                mainStore.updateAdapterConfig('browseNodesRequest.startNode', e.target.value);
                 break;
-            case 'nodeDepth': {
+            case 'browseNodesRequestDepth': {
                 const value = e.target.value !== '' ? parseInt(e.target.value, 10) : 0;
                 if (!isNaN(value)) {
-                    setNodeDepth(value);
+                    mainStore.updateAdapterConfig('browseNodesRequest.depth', value);
                 }
                 break;
             }
         }
     };
 
-    const testOpcuaConnection = async (e: FormEvent, _formProps: FormProps) => {
+    const testConnection = async (e: FormEvent, _formProps: FormProps) => {
         e.preventDefault();
 
-        if (!mainStore.adapterConfig.testConnection.opcEndpointUri) {
+        if (!mainStore.adapterConfig.testConnectionRequest.uri) {
             await showInfoDialog(infoDialogContext, {
                 catchOnCancel: true,
                 variant: 'info',
@@ -132,16 +97,6 @@ const ConfigAdapterPage: FC = observer(() => {
             return;
         }
 
-        const opcEndpoint: IEndpoint = {
-            uri: mainStore.adapterConfig.testConnection.opcEndpointUri,
-            securityMode: mainStore.adapterConfig.testConnection.securityMode,
-            credentials: {
-                credentialType: mainStore.adapterConfig.testConnection.credentials.credentialType,
-                username: mainStore.adapterConfig.testConnection.credentials.username,
-                password: mainStore.adapterConfig.testConnection.credentials.password
-            }
-        };
-
         await mainStore.saveAdapterConfig();
 
         const apiContext: IApiContext = {
@@ -149,41 +104,26 @@ const ConfigAdapterPage: FC = observer(() => {
             deviceId,
             moduleName: iotCentralStore.mapDeviceModules.get(deviceId)[0].name
         };
-        await industrialConnectStore.testEndpoint(apiContext, opcEndpoint);
+        await industrialConnectStore.testConnection(apiContext, mainStore.adapterConfig.testConnectionRequest);
     };
 
-    const browseNodes = async (e: FormEvent, _formProps: FormProps) => {
+    const fetchNodes = async (e: FormEvent, _formProps: FormProps) => {
         e.preventDefault();
 
-        if (!mainStore.adapterConfig.browseNodes.startNode
-            || !mainStore.adapterConfig.browseNodes.requestedNodeClasses.length
-            || !mainStore.adapterConfig.browseNodes.requestedAttributes.length) {
+        if (!mainStore.adapterConfig.browseNodesRequest.opcEndpoint.uri
+            || !mainStore.adapterConfig.browseNodesRequest.startNode
+            || !mainStore.adapterConfig.browseNodesRequest.requestedNodeClasses.length
+            || !mainStore.adapterConfig.browseNodesRequest.requestedAttributes.length) {
             await showInfoDialog(infoDialogContext, {
                 catchOnCancel: true,
                 variant: 'info',
                 title: 'Test Connection',
-                description: 'Some required parameters are missing for BrowseNodes'
+                description: 'Some required parameters are missing for fetch nodes request'
             });
 
             return;
         }
 
-        const browseNodesRequest: IBrowseNodesRequest = {
-            opcEndpoint: {
-                uri: mainStore.adapterConfig.testConnection.opcEndpointUri,
-                securityMode: mainStore.adapterConfig.testConnection.securityMode,
-                credentials: {
-                    credentialType: mainStore.adapterConfig.testConnection.credentials.credentialType,
-                    username: mainStore.adapterConfig.testConnection.credentials.username,
-                    password: mainStore.adapterConfig.testConnection.credentials.password
-                }
-            },
-            startNode: mainStore.adapterConfig.browseNodes.startNode,
-            depth: mainStore.adapterConfig.browseNodes.depth,
-            requestedNodeClasses: mainStore.adapterConfig.browseNodes.requestedNodeClasses,
-            requestedAttributes: mainStore.adapterConfig.browseNodes.requestedAttributes
-        };
-
         await mainStore.saveAdapterConfig();
 
         const apiContext: IApiContext = {
@@ -191,7 +131,7 @@ const ConfigAdapterPage: FC = observer(() => {
             deviceId,
             moduleName: iotCentralStore.mapDeviceModules.get(deviceId)[0].name
         };
-        await industrialConnectStore.fetchNodes(apiContext, browseNodesRequest);
+        await industrialConnectStore.fetchNodes(apiContext, mainStore.adapterConfig.browseNodesRequest);
     };
 
     const onSaveConfig = async () => {
@@ -201,25 +141,27 @@ const ConfigAdapterPage: FC = observer(() => {
     const securityModeOptions = createSelectOptionsFromEnum(SecurityMode, false);
 
     const onSecurityModeChange = (_e: SyntheticEvent, props: DropdownProps) => {
-        setSecurityMode(props.value as SecurityMode);
+        mainStore.updateAdapterConfig('testConnectionRequest.securityMode', props.value as SecurityMode);
+        mainStore.updateAdapterConfig('browseNodesRequest.opcEndpoint.securityMode', props.value as SecurityMode);
     };
 
     const endpointCredentialTypeOptions = createSelectOptionsFromEnum(EndpointCredentialType, false);
 
     const onEndpointCredentialTypeChange = (_e: SyntheticEvent, props: DropdownProps) => {
-        setEndpointCredentialType(props.value as EndpointCredentialType);
+        mainStore.updateAdapterConfig('testConnectionRequest.credentials.credentialType', props.value as EndpointCredentialType);
+        mainStore.updateAdapterConfig('browseNodesRequest.opcEndpoint.credentials.credentialType', props.value as EndpointCredentialType);
     };
 
     const nodeClassOptions = createSelectOptionsFromEnum(OpcNodeClass, false);
 
     const onNodeClassesChange = (_e: SyntheticEvent, props: DropdownProps) => {
-        setNodeClasses(props.value as OpcNodeClass[]);
+        mainStore.updateAdapterConfig('browseNodesRequest.requestedNodeClasses', props.value as OpcNodeClass[]);
     };
 
     const nodeAttributeOptions = createSelectOptionsFromEnum(OpcAttribute, false);
 
     const onNodeAttributesChange = (_e: SyntheticEvent, props: DropdownProps) => {
-        setNodeAttributes(props.value as OpcAttribute[]);
+        mainStore.updateAdapterConfig('browseNodesRequest.requestedAttributes', props.value as OpcAttribute[]);
     };
 
     return (
@@ -249,13 +191,13 @@ const ConfigAdapterPage: FC = observer(() => {
                         */}
                         <Header attached="top" as="h3" color={'blue'}>OPCUA server connection</Header>
                         <Segment attached="bottom">
-                            <Form size={'small'} onSubmit={testOpcuaConnection}>
+                            <Form size={'small'} onSubmit={testConnection}>
                                 <Form.Field width={16}>
                                     <label>Uri:</label>
                                     <Input
-                                        id="opcEndpointUri"
+                                        id="testConnectionUri"
                                         placeholder="Example: opc.tcp://192.168.4.101:4840"
-                                        value={mainStore.adapterConfig.testConnection.opcEndpointUri}
+                                        value={mainStore.adapterConfig.testConnectionRequest.uri}
                                         onChange={onFieldChange}
                                     />
                                 </Form.Field>
@@ -264,7 +206,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     label="Security mode:"
                                     selection
                                     options={securityModeOptions}
-                                    defaultValue={mainStore.adapterConfig.testConnection.securityMode}
+                                    defaultValue={mainStore.adapterConfig.testConnectionRequest.securityMode}
                                     onChange={onSecurityModeChange}
                                 />
                                 <Form.Dropdown
@@ -272,26 +214,26 @@ const ConfigAdapterPage: FC = observer(() => {
                                     label="Credentials:"
                                     selection
                                     options={endpointCredentialTypeOptions}
-                                    defaultValue={mainStore.adapterConfig.testConnection.credentials.credentialType}
+                                    defaultValue={mainStore.adapterConfig.testConnectionRequest.credentials.credentialType}
                                     onChange={onEndpointCredentialTypeChange}
                                 />
                                 {
-                                    mainStore.adapterConfig.testConnection.credentials.credentialType === EndpointCredentialType.Username
+                                    mainStore.adapterConfig.testConnectionRequest.credentials.credentialType === EndpointCredentialType.Username
                                         ? (
                                             <Segment basic compact attached={'bottom'}>
                                                 <Form.Field width={16}>
                                                     <label>Username:</label>
                                                     <Input
-                                                        id="username"
-                                                        value={mainStore.adapterConfig.testConnection.credentials.username}
+                                                        id="testConnectionUsername"
+                                                        value={mainStore.adapterConfig.testConnectionRequest.credentials.username}
                                                         onChange={onFieldChange}
                                                     />
                                                 </Form.Field>
                                                 <Form.Field width={16}>
                                                     <label>Password:</label>
                                                     <Input
-                                                        id="password"
-                                                        value={mainStore.adapterConfig.testConnection.credentials.password}
+                                                        id="testConnectionPassword"
+                                                        value={mainStore.adapterConfig.testConnectionRequest.credentials.password}
                                                         onChange={onFieldChange}
                                                     />
                                                 </Form.Field>
@@ -330,21 +272,21 @@ const ConfigAdapterPage: FC = observer(() => {
                         */}
                         <Header attached="top" as="h3" color={'blue'}>Browse OPCUA Server</Header>
                         <Segment attached="bottom">
-                            <Form size={'small'} onSubmit={browseNodes}>
+                            <Form size={'small'} onSubmit={fetchNodes}>
                                 <Form.Field width={16}>
                                     <label>Starting node:</label>
                                     <Input
-                                        id="startNode"
+                                        id="browseNodesRequestStartNode"
                                         placeholder="Example: ns=0;i=85"
-                                        value={mainStore.adapterConfig.browseNodes.startNode}
+                                        value={mainStore.adapterConfig.browseNodesRequest.startNode}
                                         onChange={onFieldChange}
                                     />
                                 </Form.Field>
                                 <Form.Field width={2}>
                                     <label>Depth:</label>
                                     <Input
-                                        id="nodeDepth"
-                                        value={mainStore.adapterConfig.browseNodes.depth}
+                                        id="browseNodesRequestDepth"
+                                        value={mainStore.adapterConfig.browseNodesRequest.depth}
                                         onChange={onFieldChange}
                                     />
                                 </Form.Field>
@@ -354,7 +296,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     multiple
                                     selection
                                     options={nodeClassOptions}
-                                    value={mainStore.adapterConfig.browseNodes.requestedNodeClasses}
+                                    value={mainStore.adapterConfig.browseNodesRequest.requestedNodeClasses}
                                     onChange={onNodeClassesChange}
                                 />
                                 <Form.Dropdown
@@ -363,7 +305,7 @@ const ConfigAdapterPage: FC = observer(() => {
                                     multiple
                                     selection
                                     options={nodeAttributeOptions}
-                                    value={mainStore.adapterConfig.browseNodes.requestedAttributes}
+                                    value={mainStore.adapterConfig.browseNodesRequest.requestedAttributes}
                                     onChange={onNodeAttributesChange}
                                 />
                                 <Divider hidden />

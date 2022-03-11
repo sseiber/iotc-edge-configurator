@@ -9,8 +9,13 @@ import {
     app
 } from 'electron';
 import logger from './logger';
+import store, { StoreKeys } from './store';
 import MenuBuilder from './menu';
 import * as contextBridgeTypes from './contextBridgeTypes';
+import {
+    IAdapterConfiguration,
+    emptyAdapterConfig
+} from './models/industrialConnect';
 import {
     MsalAuthProvider
 } from './providers/auth/msalAuth';
@@ -116,6 +121,52 @@ export class MainApp {
             }
 
             return 'foo';
+        });
+
+        ipcMain.handle(contextBridgeTypes.Ipc_GetAdapterConfiguration, async (_event: IpcMainInvokeEvent, appId: string, deviceId: string): Promise<IAdapterConfiguration> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_GetAdapterConfiguration} handler`);
+
+            let adapterConfig;
+
+            try {
+                const configCache = store.get(StoreKeys.adapterConfigCache);
+                adapterConfig = configCache.find((config) => config.appId === appId && config.deviceId === deviceId);
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_GetAdapterConfiguration} handler: ${ex.message}`);
+            }
+
+            return adapterConfig || {
+                ...emptyAdapterConfig,
+                appId,
+                deviceId
+            };
+        });
+
+        ipcMain.handle(contextBridgeTypes.Ipc_SetAdapterConfiguration, async (_event: IpcMainInvokeEvent, adapterConfig: IAdapterConfiguration): Promise<boolean> => {
+            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_SetAdapterConfiguration} handler`);
+
+            let result = true;
+
+            try {
+                const configCache = store.get(StoreKeys.adapterConfigCache);
+                const cacheIndex = configCache.findIndex((config) => config.appId === adapterConfig.appId && config.deviceId === adapterConfig.deviceId);
+                if (cacheIndex >= 0) {
+                    configCache[cacheIndex] = adapterConfig;
+                }
+                else {
+                    configCache.push(adapterConfig);
+                }
+
+                store.set(StoreKeys.adapterConfigCache, configCache);
+            }
+            catch (ex) {
+                logger.log([ModuleName, 'error'], `Error during ${contextBridgeTypes.Ipc_SetAdapterConfiguration} handler: ${ex.message}`);
+
+                result = false;
+            }
+
+            return result;
         });
 
         ipcMain.handle(contextBridgeTypes.Ipc_OpenLink, async (_event: IpcMainInvokeEvent, url: string): Promise<void> => {

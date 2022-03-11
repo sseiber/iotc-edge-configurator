@@ -22,16 +22,16 @@ export class IndustrialConnectStore {
         return process.env.NODE_ENV === 'production';
     }
 
-    public async testEndpoint(apiContext: IApiContext, opcEndpoint: IEndpoint): Promise<void> {
+    public async testConnection(apiContext: IApiContext, opcEndpoint: IEndpoint): Promise<void> {
         runInAction(() => {
             this.waitingOnEndpointVerification = true;
         });
 
         try {
-            const testEndpointResponse = await window.ipcApi[contextBridgeTypes.Ipc_TestEndpoint](apiContext, opcEndpoint);
+            const testConnectionResponse = await window.ipcApi[contextBridgeTypes.Ipc_TestConnection](apiContext, toJS(opcEndpoint));
 
             runInAction(() => {
-                this.endpointVerified = testEndpointResponse.status === 200 && testEndpointResponse.payload.endpointVerified === true;
+                this.endpointVerified = testConnectionResponse.status === 200 && testConnectionResponse.payload.endpointVerified === true;
             });
         }
         catch (ex) {
@@ -54,11 +54,7 @@ export class IndustrialConnectStore {
         });
 
         try {
-            const fetchNodesResponse = await window.ipcApi[contextBridgeTypes.Ipc_FetchNodes](apiContext, {
-                ...browseNodesRequest,
-                requestedNodeClasses: toJS(browseNodesRequest.requestedNodeClasses),
-                requestedAttributes: toJS(browseNodesRequest.requestedAttributes)
-            });
+            const fetchNodesResponse = await window.ipcApi[contextBridgeTypes.Ipc_FetchNodes](apiContext, toJS(browseNodesRequest));
 
             runInAction(() => {
                 this.browsedNodesResultFilePath = fetchNodesResponse.status === 200 ? fetchNodesResponse.payload.fetchedNodesFilePath : '';
