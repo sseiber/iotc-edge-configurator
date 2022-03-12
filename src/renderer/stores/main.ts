@@ -1,9 +1,5 @@
-import { makeAutoObservable, runInAction, toJS } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
 import * as contextBridgeTypes from '../../main/contextBridgeTypes';
-import {
-    emptyAdapterConfig
-} from '../../main/models/industrialConnect';
-import _set from 'lodash.set';
 
 export enum AuthenticationState {
     Authenticated = 'Authenticated',
@@ -18,7 +14,6 @@ export class MainStore {
     }
 
     public configuration: any;
-    public adapterConfig = emptyAdapterConfig;
 
     public serviceError = '';
 
@@ -33,24 +28,5 @@ export class MainStore {
                 this.configuration = response;
             });
         }
-    }
-
-    public updateAdapterConfig(key: string, value: any): void {
-        runInAction(() => {
-            _set(this.adapterConfig, key, value);
-        });
-    }
-
-    public async loadAdapterConfiguration(appId: string, deviceId: string): Promise<void> {
-        const adapterConfig = await window.ipcApi[contextBridgeTypes.Ipc_GetAdapterConfiguration](appId, deviceId);
-        if (adapterConfig) {
-            runInAction(() => {
-                this.adapterConfig = adapterConfig;
-            });
-        }
-    }
-
-    public async saveAdapterConfig(): Promise<void> {
-        await window.ipcApi[contextBridgeTypes.Ipc_SetAdapterConfiguration](toJS(this.adapterConfig));
     }
 }

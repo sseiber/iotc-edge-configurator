@@ -38,26 +38,11 @@ export interface IEndpoint {
     credentials: IEndpointCredentials;
 }
 
-// export enum OpcNodeClass {
-//     Object = 1,
-//     Variable = 2
-// }
 export enum OpcNodeClass {
     Object = 'Object',
     Variable = 'Variable'
 }
 
-// export enum OpcAttribute {
-//     NodeClass = 2,
-//     BrowseName = 3,
-//     DisplayName = 4,
-//     Description = 5,
-//     Value = 13,
-//     DataType = 14,
-//     ValueRank = 15,
-//     ArrayDimensions = 16,
-//     UserAccessLevel = 18
-// }
 export enum OpcAttribute {
     NodeClass = 'NodeClass',
     BrowseName = 'BrowseName',
@@ -78,17 +63,24 @@ export interface IBrowseNodesRequest {
     requestedAttributes: OpcAttribute[];
 }
 
+export interface IBrowseNodesConfig {
+    startNode: string;
+    depth: number;
+    requestedNodeClasses: OpcNodeClass[];
+    requestedAttributes: OpcAttribute[];
+}
+
 export interface IAdapterConfiguration {
     appId: string;
     deviceId: string;
-    testConnectionRequest: IEndpoint;
-    browseNodesRequest: IBrowseNodesRequest;
+    opcEndpoint: IEndpoint;
+    browseNodesConfig: IBrowseNodesConfig;
 }
 
 export const emptyAdapterConfig: IAdapterConfiguration = {
     appId: '',
     deviceId: '',
-    testConnectionRequest: {
+    opcEndpoint: {
         uri: '',
         securityMode: SecurityMode.Lowest,
         credentials: {
@@ -97,16 +89,7 @@ export const emptyAdapterConfig: IAdapterConfiguration = {
             password: ''
         }
     },
-    browseNodesRequest: {
-        opcEndpoint: {
-            uri: '',
-            securityMode: SecurityMode.Lowest,
-            credentials: {
-                credentialType: EndpointCredentialType.Anonymous,
-                username: '',
-                password: ''
-            }
-        },
+    browseNodesConfig: {
         startNode: '',
         depth: 1,
         requestedNodeClasses: [OpcNodeClass.Object, OpcNodeClass.Variable],

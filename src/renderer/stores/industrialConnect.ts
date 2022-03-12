@@ -1,16 +1,20 @@
-import { makeAutoObservable, runInAction, toJS } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
 import * as contextBridgeTypes from '../../main/contextBridgeTypes';
 import {
     IApiContext,
     IEndpoint,
-    IBrowseNodesRequest
+    IBrowseNodesRequest,
+    emptyAdapterConfig,
+    IAdapterConfiguration
 } from '../../main/models/industrialConnect';
+import _set from 'lodash.set';
 
 export class IndustrialConnectStore {
     constructor() {
         makeAutoObservable(this);
     }
 
+    public adapterConfig = emptyAdapterConfig;
     public waitingOnEndpointVerification = false;
     public waitingOnFetchNodes = false;
     public endpointVerified = false;
@@ -22,13 +26,26 @@ export class IndustrialConnectStore {
         return process.env.NODE_ENV === 'production';
     }
 
+    public async loadAdapterConfiguration(appId: string, deviceId: string): Promise<void> {
+        const adapterConfig = await window.ipcApi[contextBridgeTypes.Ipc_GetAdapterConfiguration](appId, deviceId);
+        if (adapterConfig) {
+            runInAction(() => {
+                this.adapterConfig = adapterConfig;
+            });
+        }
+    }
+
+    public async saveAdapterConfig(config: IAdapterConfiguration): Promise<void> {
+        await window.ipcApi[contextBridgeTypes.Ipc_SetAdapterConfiguration](config);
+    }
+
     public async testConnection(apiContext: IApiContext, opcEndpoint: IEndpoint): Promise<void> {
         runInAction(() => {
             this.waitingOnEndpointVerification = true;
         });
 
         try {
-            const testConnectionResponse = await window.ipcApi[contextBridgeTypes.Ipc_TestConnection](apiContext, toJS(opcEndpoint));
+            const testConnectionResponse = await window.ipcApi[contextBridgeTypes.Ipc_TestConnection](apiContext, opcEndpoint);
 
             runInAction(() => {
                 this.endpointVerified = testConnectionResponse.status === 200 && testConnectionResponse.payload.endpointVerified === true;
@@ -54,7 +71,7 @@ export class IndustrialConnectStore {
         });
 
         try {
-            const fetchNodesResponse = await window.ipcApi[contextBridgeTypes.Ipc_FetchNodes](apiContext, toJS(browseNodesRequest));
+            const fetchNodesResponse = await window.ipcApi[contextBridgeTypes.Ipc_FetchNodes](apiContext, browseNodesRequest);
 
             runInAction(() => {
                 this.browsedNodesResultFilePath = fetchNodesResponse.status === 200 ? fetchNodesResponse.payload.fetchedNodesFilePath : '';
