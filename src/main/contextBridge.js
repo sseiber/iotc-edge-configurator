@@ -1,6 +1,10 @@
 /* eslint-disable max-len */
 /* eslint-disable @typescript-eslint/no-var-requires */
-const { contextBridge, ipcRenderer } = require('electron');
+const {
+    contextBridge,
+    ipcMain,
+    ipcRenderer
+} = require('electron');
 const contextBridgeTypes = require('./contextBridgeTypes.ts');
 
 contextBridge.exposeInMainWorld('ipcApi', {
@@ -29,5 +33,16 @@ contextBridge.exposeInMainWorld('ipcApi', {
 
     // Industrial Connect
     [contextBridgeTypes.Ipc_TestConnection]: (apiContext, opcEndpoint) => ipcRenderer.invoke(contextBridgeTypes.Ipc_TestConnection, apiContext, opcEndpoint),
-    [contextBridgeTypes.Ipc_FetchNodes]: (apiContext, browseNodesRequest) => ipcRenderer.invoke(contextBridgeTypes.Ipc_FetchNodes, apiContext, browseNodesRequest)
+    [contextBridgeTypes.Ipc_TestConnectionProgress]: (channel, receiver) => {
+        ipcRenderer.on(channel, (event, message) => receiver(event, message));
+    },
+
+    [contextBridgeTypes.Ipc_FetchNodes]: (apiContext, browseNodesRequest) => ipcRenderer.invoke(contextBridgeTypes.Ipc_FetchNodes, apiContext, browseNodesRequest),
+    [contextBridgeTypes.Ipc_FetchNodesProgress]: (channel, receiver) => {
+        ipcRenderer.on(channel, (event, message) => receiver(event, message));
+    },
+
+    [contextBridgeTypes.Ipc_ReceiveMessage]: (channel, receiver) => {
+        ipcRenderer.on(channel, (event, ...args) => receiver(event, ...args));
+    }
 });

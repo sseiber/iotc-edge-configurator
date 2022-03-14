@@ -44,51 +44,18 @@ export class IndustrialConnectProvider extends AppProvider {
     }
 
     public registerIpcEventHandlers(): void {
-        this.ipcMain.handle(contextBridgeTypes.Ipc_TestConnection, async (_event: IpcMainInvokeEvent, apiContext: IApiContext, opcEndpoint: IEndpoint): Promise<IIndustrialDirectMethodResponse> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_TestConnection} handler`);
-
-            let testConnectionResponse: IIndustrialDirectMethodResponse = {
-                status: 500,
-                message: ``,
-                payload: {}
-            };
-
-            try {
-                testConnectionResponse = await this.testConnection(opcEndpoint, apiContext);
-            }
-            catch (ex) {
-                testConnectionResponse.message = `Error during ${contextBridgeTypes.Ipc_TestConnection} handler: ${ex.message}`;
-
-                logger.log([ModuleName, 'error'], testConnectionResponse.message);
-            }
-
-            return testConnectionResponse;
-        });
-
-        this.ipcMain.handle(contextBridgeTypes.Ipc_FetchNodes, async (_event: IpcMainInvokeEvent, apiContext: IApiContext, browseNodesRequest: IBrowseNodesRequest): Promise<IIndustrialDirectMethodResponse> => {
-            logger.log([ModuleName, 'info'], `ipcMain ${contextBridgeTypes.Ipc_FetchNodes} handler`);
-
-            let fetchNodesResponse: IIndustrialDirectMethodResponse = {
-                status: 500,
-                message: ``,
-                payload: {}
-            };
-
-            try {
-                fetchNodesResponse = await this.fetchNodes(browseNodesRequest, apiContext);
-            }
-            catch (ex) {
-                fetchNodesResponse.message = `Error during ${contextBridgeTypes.Ipc_FetchNodes} handler: ${ex.message}`;
-
-                logger.log([ModuleName, 'error'], fetchNodesResponse.message);
-            }
-
-            return fetchNodesResponse;
-        });
+        this.ipcMain.handle(contextBridgeTypes.Ipc_TestConnection, this.testConnection.bind(this));
+        this.ipcMain.handle(contextBridgeTypes.Ipc_FetchNodes, this.fetchNodes.bind(this));
     }
 
-    private async testConnection(opcEndpoint: IEndpoint, apiContext: IApiContext): Promise<IIndustrialDirectMethodResponse> {
+    private async testConnection(_event: IpcMainInvokeEvent, apiContext: IApiContext, opcEndpoint: IEndpoint): Promise<IIndustrialDirectMethodResponse> {
         logger.log([ModuleName, 'info'], `testConnection`);
+
+        this.authWindow.webContents.send(contextBridgeTypes.Ipc_TestConnectionProgress, {
+            label: 'Testing connection',
+            current: 1,
+            max: 10
+        });
 
         const finalResponse: IIndustrialDirectMethodResponse = {
             status: 500,
@@ -132,7 +99,7 @@ export class IndustrialConnectProvider extends AppProvider {
         return finalResponse;
     }
 
-    private async fetchNodes(browseNodesRequest: IBrowseNodesRequest, apiContext: IApiContext): Promise<IIndustrialDirectMethodResponse> {
+    private async fetchNodes(event: IpcMainInvokeEvent, apiContext: IApiContext, browseNodesRequest: IBrowseNodesRequest): Promise<IIndustrialDirectMethodResponse> {
         logger.log([ModuleName, 'info'], `fetchNodes`);
 
         const finalResponse: IIndustrialDirectMethodResponse = {
@@ -142,7 +109,13 @@ export class IndustrialConnectProvider extends AppProvider {
         };
 
         try {
-            const testConnectionResponse = await this.testConnection(browseNodesRequest.opcEndpoint, apiContext);
+            this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
+                label: 'Testing connection',
+                current: 1,
+                max: 10
+            });
+
+            const testConnectionResponse = await this.testConnection(event, apiContext, browseNodesRequest.opcEndpoint);
             if (testConnectionResponse.status !== 200 || testConnectionResponse.payload.endpointVerified !== true) {
                 finalResponse.message = `Unable to connect to the OPCUA endpoint - uri: ${browseNodesRequest.opcEndpoint.uri}`;
                 logger.log([ModuleName, 'error'], finalResponse.message);
@@ -151,6 +124,12 @@ export class IndustrialConnectProvider extends AppProvider {
             }
 
             logger.log([ModuleName, 'info'], `Starting node: ${browseNodesRequest.startNode}, depth: ${browseNodesRequest.depth}`);
+
+            this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
+                label: 'Sending BrowseNodes request',
+                current: 2,
+                max: 10
+            });
 
             const requestConfig = await this.getDirectMethodApiConfig(
                 `https://${apiContext.appSubdomain}.${IoTCentralBaseDomain}/api/devices/${apiContext.deviceId}/modules/${apiContext.moduleName}/commands/${IndustrialConnectCommands.BrowseNodes}?api-version=1.1-preview`,
@@ -180,6 +159,12 @@ export class IndustrialConnectProvider extends AppProvider {
                         const continuationToken: string = fetchBrowsedNodesResponse?.payload?.response?.ContinuationToken || '1';
 
                         logger.log([ModuleName, 'info'], `Calling fetchBrowsedNodes with JobId: ${jobId} and ContinuationToken: ${continuationToken}`);
+
+                        this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
+                            label: 'Fetching nodes',
+                            current: 3,
+                            max: 10
+                        });
 
                         fetchBrowsedNodesResponse = await this.fetchBrowsedNodes(apiContext, jobId, continuationToken);
 
@@ -218,6 +203,12 @@ export class IndustrialConnectProvider extends AppProvider {
 
             logger.log([ModuleName, 'error'], finalResponse.message);
         }
+
+        this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
+            label: 'Fetching nodes',
+            current: 10,
+            max: 10
+        });
 
         return finalResponse;
     }

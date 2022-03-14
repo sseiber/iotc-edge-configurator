@@ -1,3 +1,5 @@
+/* eslint-disable max-len */
+import { IpcRendererEvent } from 'electron';
 import { AccountInfo } from '@azure/msal-node';
 import { IMsalConfig } from '../main/models/msalAuth';
 import {
@@ -38,7 +40,17 @@ const Ipc_GetIotcDeviceModules = 'Ipc_GetIotcDeviceModules';
 
 // Industrial Connect
 const Ipc_TestConnection = 'Ipc_TestConnection';
+const Ipc_TestConnectionProgress = 'Ipc_TestConnectionProgress';
 const Ipc_FetchNodes = 'Ipc_FetchNodes';
+const Ipc_FetchNodesProgress = 'Ipc_FetchNodesProgress';
+
+const Ipc_ReceiveMessage = 'Ipc_ReceiveMessage';
+
+interface IIpcProgress {
+    label: string;
+    value: number;
+    total: number;
+}
 
 declare global {
     interface Window {
@@ -68,7 +80,11 @@ declare global {
 
             // Industrial Connect
             [Ipc_TestConnection]: (apiContext: IApiContext, opcEndpoint: IEndpoint) => Promise<IIndustrialDirectMethodResponse>;
+            [Ipc_TestConnectionProgress]: (channel: string, receiver: (event: IpcRendererEvent, message: IIpcProgress) => void) => void;
             [Ipc_FetchNodes]: (apiContext: IApiContext, browseNodesRequest: IBrowseNodesRequest) => Promise<IIndustrialDirectMethodResponse>;
+            [Ipc_FetchNodesProgress]: (channel: string, receiver: (event: IpcRendererEvent, message: IIpcProgress) => void) => void;
+
+            [Ipc_ReceiveMessage]: (channel: string, receiver: (event: IpcRendererEvent, ...args: any[]) => void) => void;
         };
     }
 }
@@ -92,5 +108,9 @@ export {
     Ipc_GetIotcDevices,
     Ipc_GetIotcDeviceModules,
     Ipc_TestConnection,
-    Ipc_FetchNodes
+    Ipc_TestConnectionProgress,
+    Ipc_FetchNodes,
+    Ipc_FetchNodesProgress,
+    Ipc_ReceiveMessage,
+    IIpcProgress
 };
