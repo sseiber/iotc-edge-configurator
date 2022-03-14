@@ -1,6 +1,5 @@
 import React, { ErrorInfo, Component } from 'react';
 import { Button, Modal, Form } from 'semantic-ui-react';
-import { bind } from '../utils';
 
 interface IErrorBoundaryProps {
     children: any;
@@ -65,7 +64,7 @@ export class ErrorBoundary extends Component<IErrorBoundaryProps, IErrorBoundary
                         </Form>
                     </Modal.Content>
                     <Modal.Actions>
-                        <Button onClick={this.dismiss}>Close</Button>
+                        <Button onClick={this.dismiss.bind(this)}>Close</Button>
                     </Modal.Actions>
                 </Modal>
             );
@@ -74,7 +73,6 @@ export class ErrorBoundary extends Component<IErrorBoundaryProps, IErrorBoundary
         return children;
     }
 
-    @bind
     private dismiss() {
         this.setState({
             hasError: false

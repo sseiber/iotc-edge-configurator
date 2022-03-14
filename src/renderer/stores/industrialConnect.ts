@@ -1,5 +1,7 @@
+import { IpcRendererEvent } from 'electron';
 import { makeAutoObservable, runInAction } from 'mobx';
 import * as contextBridgeTypes from '../../main/contextBridgeTypes';
+import { IIpcProgress } from '../../main/contextBridgeTypes';
 import {
     IApiContext,
     IEndpoint,
@@ -7,17 +9,29 @@ import {
     emptyAdapterConfig,
     IAdapterConfiguration
 } from '../../main/models/industrialConnect';
-import _set from 'lodash.set';
 
 export class IndustrialConnectStore {
     constructor() {
         makeAutoObservable(this);
+
+        window.ipcApi[contextBridgeTypes.Ipc_TestConnectionProgress](contextBridgeTypes.Ipc_TestConnectionProgress, this.onTestConnectionProgress.bind(this));
+        window.ipcApi[contextBridgeTypes.Ipc_FetchNodesProgress](contextBridgeTypes.Ipc_FetchNodesProgress, this.onFetchNodesProgress.bind(this));
     }
 
     public adapterConfig = emptyAdapterConfig;
     public waitingOnEndpointVerification = false;
     public waitingOnFetchNodes = false;
     public endpointVerified = false;
+    public testConnectionProgress: IIpcProgress = {
+        label: '',
+        value: 0,
+        total: 0
+    };
+    public fetchNodesProgress: IIpcProgress = {
+        label: '',
+        value: 0,
+        total: 0
+    };
     public browsedNodesResultFilePath: string;
 
     public serviceError = '';
@@ -89,5 +103,17 @@ export class IndustrialConnectStore {
                 this.waitingOnFetchNodes = false;
             });
         }
+    }
+
+    private onTestConnectionProgress(_event: IpcRendererEvent, message: IIpcProgress): void {
+        runInAction(() => {
+            this.testConnectionProgress = message;
+        });
+    }
+
+    private onFetchNodesProgress(_event: IpcRendererEvent, message: IIpcProgress): void {
+        runInAction(() => {
+            this.fetchNodesProgress = message;
+        });
     }
 }

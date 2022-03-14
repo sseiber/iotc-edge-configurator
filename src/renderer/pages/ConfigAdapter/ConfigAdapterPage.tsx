@@ -361,7 +361,25 @@ const ConfigAdapterPage: FC = observer(() => {
                                     onChange={onNodeAttributesChange}
                                 />
                                 <Divider hidden />
-                                <Button size={'tiny'} type='submit'>Browse Nodes</Button>
+                                <Grid>
+                                    <Grid.Column width={3}>
+                                        <Button fluid size={'tiny'} type="submit" content="Browse Nodes" />
+                                    </Grid.Column>
+                                    {
+                                        industrialConnectStore.waitingOnFetchNodes
+                                            ? (
+                                                <Grid.Column width={4} verticalAlign={'middle'}>
+                                                    <Progress
+                                                        progress={'ratio'}
+                                                        total={industrialConnectStore.fetchNodesProgress.total}
+                                                        value={industrialConnectStore.fetchNodesProgress.value}
+                                                        active content={industrialConnectStore.fetchNodesProgress.label}
+                                                    />
+                                                </Grid.Column>
+                                            )
+                                            : null
+                                    }
+                                </Grid>
                             </Form>
                         </Segment>
                     </Segment>
