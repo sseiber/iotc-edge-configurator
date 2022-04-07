@@ -32,6 +32,12 @@ import { resolve as resolvePath } from 'path';
 
 const ModuleName = 'IndustrialConnectProvider';
 
+interface IIndustrialConnectMethodResponse {
+    status: number;
+    message: string;
+    payload?: any;
+}
+
 export class IndustrialConnectProvider extends AppProvider {
     private authProvider: MsalAuthProvider;
 
@@ -53,8 +59,8 @@ export class IndustrialConnectProvider extends AppProvider {
 
         this.authWindow.webContents.send(contextBridgeTypes.Ipc_TestConnectionProgress, {
             label: 'Testing connection',
-            current: 1,
-            max: 10
+            value: 1,
+            total: 10
         });
 
         const finalResponse: IIndustrialDirectMethodResponse = {
@@ -75,17 +81,17 @@ export class IndustrialConnectProvider extends AppProvider {
                 10
             );
 
-            const testConnectionResponse = await requestApi(requestConfig);
+            const testConnectionResponse = await this.iotCentralApiInvokeMethod(requestConfig);
 
-            finalResponse.status = testConnectionResponse?.payload?.responseCode || testConnectionResponse.status;
+            finalResponse.status = testConnectionResponse.status;
 
-            if (testConnectionResponse.status === 201 && testConnectionResponse.payload?.responseCode === 200) {
+            if (testConnectionResponse.status === 200) {
                 finalResponse.payload = {
                     endpointVerified: true
                 };
             }
             else {
-                finalResponse.message = `Error: status: ${testConnectionResponse.status}, payload responseCode: ${testConnectionResponse.payload?.responseCode}`;
+                finalResponse.message = `Error: status: ${testConnectionResponse.status} - ${testConnectionResponse.message}`;
 
                 logger.log([ModuleName, 'error'], finalResponse.message);
             }
@@ -111,8 +117,8 @@ export class IndustrialConnectProvider extends AppProvider {
         try {
             this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
                 label: 'Testing connection',
-                current: 1,
-                max: 10
+                value: 1,
+                total: 10
             });
 
             const testConnectionResponse = await this.testConnection(event, apiContext, browseNodesRequest.opcEndpoint);
@@ -127,25 +133,26 @@ export class IndustrialConnectProvider extends AppProvider {
 
             this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
                 label: 'Sending BrowseNodes request',
-                current: 2,
-                max: 10
+                value: 2,
+                total: 10
             });
 
             const requestConfig = await this.getDirectMethodApiConfig(
-                `https://${apiContext.appSubdomain}.${IoTCentralBaseDomain}/api/devices/${apiContext.deviceId}/modules/${apiContext.moduleName}/commands/${IndustrialConnectCommands.BrowseNodes}?api-version=1.1-preview`,
+                `https://${apiContext.appSubdomain}.${IoTCentralBaseDomain}/api/devices/${apiContext.deviceId}/modules/${apiContext.moduleName}/commands/${IndustrialConnectCommands.FetchNodes}?api-version=1.1-preview`,
                 browseNodesRequest
             );
-            const browseNodesResponse = await requestApi(requestConfig);
+            const browseNodesResponse = await this.iotCentralApiInvokeMethod(requestConfig);
 
-            finalResponse.status = browseNodesResponse?.payload?.responseCode || browseNodesResponse.status;
+            finalResponse.status = browseNodesResponse.status;
 
-            if (browseNodesResponse.status !== 201 || browseNodesResponse.payload?.responseCode !== 200 || !browseNodesResponse.payload.response?.JobId) {
-                finalResponse.message = browseNodesResponse?.payload?.response?.error.message || `Unknown error in the response from BrowseNodes - status: ${browseNodesResponse.status}`;
-
+            if (browseNodesResponse.status !== 200) {
+                finalResponse.message = browseNodesResponse.message || `Unknown error in the response from BrowseNodes - status: ${browseNodesResponse.status}`;
                 logger.log([ModuleName, 'error'], finalResponse.message);
+
+                return finalResponse;
             }
             else {
-                const jobId = browseNodesResponse.payload.response?.JobId;
+                const jobId = browseNodesResponse.payload?.JobId;
                 const blobFilename = `fetchNodes-${format(new Date(), 'yyyyMMdd-HHmmss')}.json`;
                 const fetchedNodesFilePath = resolvePath(app.getPath('downloads'), blobFilename);
 
@@ -155,27 +162,32 @@ export class IndustrialConnectProvider extends AppProvider {
                 fetchedNodesFileStream.create();
 
                 try {
-                    do {
-                        const continuationToken: string = fetchBrowsedNodesResponse?.payload?.response?.ContinuationToken || '1';
+                    if (jobId) {
+                        do {
+                            const continuationToken: string = fetchBrowsedNodesResponse?.payload?.response?.ContinuationToken || '1';
 
-                        logger.log([ModuleName, 'info'], `Calling fetchBrowsedNodes with JobId: ${jobId} and ContinuationToken: ${continuationToken}`);
+                            logger.log([ModuleName, 'info'], `Calling fetchBrowsedNodes with JobId: ${jobId} and ContinuationToken: ${continuationToken}`);
 
-                        this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
-                            label: 'Fetching nodes',
-                            current: 3,
-                            max: 10
-                        });
+                            this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
+                                label: 'Fetching nodes',
+                                value: 3,
+                                total: 10
+                            });
 
-                        fetchBrowsedNodesResponse = await this.fetchBrowsedNodes(apiContext, jobId, continuationToken);
+                            fetchBrowsedNodesResponse = await this.fetchBrowsedNodes(apiContext, jobId, continuationToken);
 
-                        logger.log([ModuleName, 'info'], `fetchBrowsedNodes returned status: ${fetchBrowsedNodesResponse.status}`);
+                            logger.log([ModuleName, 'info'], `fetchBrowsedNodes returned status: ${fetchBrowsedNodesResponse.status}`);
 
-                        if (fetchBrowsedNodesResponse.status === 200 && fetchBrowsedNodesResponse?.payload?.nodes) {
-                            logger.log([ModuleName, 'info'], `fetchBrowsedNodes returned ${fetchBrowsedNodesResponse.payload.nodes.length} nodes`);
+                            if (fetchBrowsedNodesResponse.status === 200 && fetchBrowsedNodesResponse?.payload?.nodes) {
+                                logger.log([ModuleName, 'info'], `fetchBrowsedNodes returned ${fetchBrowsedNodesResponse.payload.nodes.length} nodes`);
 
-                            await fetchedNodesFileStream.writeJson(fetchBrowsedNodesResponse.payload.nodes);
-                        }
-                    } while (fetchBrowsedNodesResponse.status === 200 && fetchBrowsedNodesResponse?.payload?.continuationToken);
+                                await fetchedNodesFileStream.writeJson(fetchBrowsedNodesResponse.payload.nodes);
+                            }
+                        } while (fetchBrowsedNodesResponse.status === 200 && fetchBrowsedNodesResponse?.payload?.continuationToken);
+                    }
+                    else if (browseNodesResponse.payload?.nodes) {
+                        await fetchedNodesFileStream.writeJson(browseNodesResponse.payload?.nodes);
+                    }
                 }
                 catch (ex) {
                     finalResponse.message = `Error while fetching node chunks: ${ex.message}`;
@@ -206,8 +218,8 @@ export class IndustrialConnectProvider extends AppProvider {
 
         this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
             label: 'Fetching nodes',
-            current: 10,
-            max: 10
+            value: 10,
+            total: 10
         });
 
         return finalResponse;
@@ -262,12 +274,12 @@ export class IndustrialConnectProvider extends AppProvider {
                     payload: compressedRequest.toString('base64')
                 }
             );
-            let chunkResponse = await requestApi(requestConfig);
+            let chunkResponse = await this.iotCentralApiInvokeMethod(requestConfig);
 
-            finalResponse.status = chunkResponse?.payload?.responseCode || chunkResponse.status;
+            finalResponse.status = chunkResponse.status;
 
-            if (chunkResponse.status !== 201 && chunkResponse?.payload?.responseCode !== 202 || !chunkResponse?.payload?.response?.RequestId) {
-                finalResponse.message = chunkResponse.payload?.response?.error.message || `Unknown error in the chunked response from ${methodName} - status: ${chunkResponse.status}`;
+            if (chunkResponse.status !== 202 || !chunkResponse?.payload?.RequestId) {
+                finalResponse.message = chunkResponse.payload?.error.message || `Unknown error in the chunked response from ${methodName} - status: ${chunkResponse.status}`;
 
                 logger.log([ModuleName, 'info'], finalResponse.message);
             }
@@ -278,27 +290,27 @@ export class IndustrialConnectProvider extends AppProvider {
                     requestConfig = await this.getDirectMethodApiConfig(
                         `https://${apiContext.appSubdomain}.${IoTCentralBaseDomain}/api/devices/${apiContext.deviceId}/modules/${apiContext.moduleName}/commands/${methodName}?api-version=1.1-preview`,
                         {
-                            RequestId: chunkResponse.payload.response.RequestId
+                            RequestId: chunkResponse.payload.RequestId
                         }
                     );
-                    chunkResponse = await requestApi(requestConfig);
+                    chunkResponse = await this.iotCentralApiInvokeMethod(requestConfig);
 
-                    logger.log([ModuleName, 'info'], `${methodName} returned status: ${chunkResponse.payload.responseCode}`);
-                } while (chunkResponse.status === 201 && chunkResponse?.payload?.responseCode === 102);
+                    logger.log([ModuleName, 'info'], `${methodName} returned status: ${chunkResponse.status}`);
+                } while (chunkResponse.status === 102);
 
-                if (chunkResponse.status === 201 && chunkResponse.payload.responseCode === 200 && chunkResponse.payload?.response?.Payload?.length) {
-                    const resultBuffer = gunzipSync(Buffer.from(chunkResponse.payload.response.Payload, 'base64'));
+                if (chunkResponse.status === 200 && chunkResponse.payload?.Payload?.length) {
+                    const resultBuffer = gunzipSync(Buffer.from(chunkResponse.payload.Payload, 'base64'));
 
                     finalResponse.message = `${methodName} succeeded`;
                     finalResponse.payload = JSON.parse(resultBuffer.toString());
                 }
                 else {
-                    finalResponse.message = chunkResponse.payload?.response?.error.message || `Unknown error in the chunked response from ${methodName} - status: ${chunkResponse.status}`;
+                    finalResponse.message = chunkResponse.payload?.error.message || `Unknown error in the chunked response from ${methodName} - status: ${chunkResponse.status}`;
 
                     logger.log([ModuleName, 'error'], finalResponse.message);
                 }
 
-                finalResponse.status = chunkResponse.payload.responseCode;
+                finalResponse.status = chunkResponse.status;
             }
         }
         catch (ex) {
@@ -326,6 +338,42 @@ export class IndustrialConnectProvider extends AppProvider {
                 request
             }
         };
+    }
+
+    private async iotCentralApiInvokeMethod(config: any): Promise<IIndustrialConnectMethodResponse> {
+        logger.log([ModuleName, 'info'], `iotCentralApiInvokeMethod`);
+
+        const methodResponse: IIndustrialConnectMethodResponse = {
+            status: 200,
+            message: ''
+        };
+
+        try {
+            const apiResponse = await requestApi(config);
+
+            if (apiResponse.status >= 200 && apiResponse.status <= 299) {
+                methodResponse.status = apiResponse.payload?.response.status || apiResponse.payload?.responseCode;
+                methodResponse.message = apiResponse.payload?.response.message || '';
+
+                if (apiResponse.payload?.response?.payload) {
+                    methodResponse.payload = apiResponse.payload.response.payload;
+                }
+
+                logger.log([ModuleName, 'info'], `methodResponse: status: ${methodResponse.status}`);
+            }
+            else {
+                methodResponse.status = apiResponse.status;
+                methodResponse.message = `An error occurred during request: apiResponse status - ${apiResponse.status}`;
+
+                logger.log([ModuleName, 'error'], methodResponse.message);
+            }
+        }
+        catch (ex) {
+            methodResponse.status = 500;
+            methodResponse.message = `An error occurred during the request: ${ex.message}`;
+        }
+
+        return methodResponse;
     }
 }
 

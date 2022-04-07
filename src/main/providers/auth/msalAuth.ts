@@ -25,7 +25,7 @@ import axios from 'axios';
 
 const ModuleName = 'MsalAuthProvider';
 
-const AuthCodeTimeout = 1000 * 30;
+const AuthCodeTimeout = 1000 * 60 * 2;
 
 // Configuration object to be passed to MSAL instance on creation.
 // For a full list of MSAL Node configuration parameters, visit:
@@ -467,10 +467,13 @@ export class MsalAuthProvider extends AppProvider {
                 logger.log([ModuleName, 'info'], 'No accounts detected');
             }
             else if (currentAccounts.length > 1) {
-                // Add choose account code here
-                logger.log([ModuleName, 'info'], 'Multiple accounts detected, need to add choose account code.');
+                // Our app is configured to a specific tenant - so we are only interested in the
+                // cached account for the configured tenant
 
-                accountResult = currentAccounts[0];
+                const tenantId = store.get(StoreKeys.tenantId);
+                logger.log([ModuleName, 'info'], `Multiple accounts detected, looking for cached account with tenantId: ${tenantId}`);
+
+                accountResult = currentAccounts.find(account => account.tenantId === tenantId);
             }
             else if (currentAccounts.length === 1) {
                 accountResult = currentAccounts[0];

@@ -11,8 +11,8 @@ export interface IApiContext {
 }
 
 export enum IndustrialConnectCommands {
-    TestConnection = 'TestConnection_v1',
-    BrowseNodes = 'BrowseNodes_v1',
+    TestConnection = 'cmTestConnection',
+    FetchNodes = 'cmFetchNodes',
     FetchBrowsedNodes = 'FetchBrowsedNodes_v1'
 }
 

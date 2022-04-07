@@ -66,10 +66,6 @@ const App: FC = observer((props: any) => {
         }
     };
 
-    const onEditAzureConfig = () => {
-        navigate(AppNavigationPaths.AzureConfig);
-    };
-
     const onClickSignout = async () => {
         await sessionStore.signout();
     };
@@ -84,7 +80,7 @@ const App: FC = observer((props: any) => {
                 </span>
             )}>
                 <Dropdown.Menu>
-                    < Dropdown.Item onClick={onEditAzureConfig}>
+                    < Dropdown.Item onClick={() => navigate(AppNavigationPaths.AzureConfig)}>
                         <Icon name="edit" />
                         <span>&nbsp;&nbsp;Edit Azure config</span>
                     </Dropdown.Item>
@@ -106,7 +102,7 @@ const App: FC = observer((props: any) => {
                 </span>
             )}>
                 <Dropdown.Menu>
-                    < Dropdown.Item onClick={onEditAzureConfig}>
+                    < Dropdown.Item onClick={() => navigate(AppNavigationPaths.AzureConfig)}>
                         <Icon name="edit" />
                         <span>&nbsp;&nbsp;Edit Azure config</span>
                     </Dropdown.Item>
