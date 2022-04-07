@@ -59,8 +59,8 @@ export class IndustrialConnectProvider extends AppProvider {
 
         this.authWindow.webContents.send(contextBridgeTypes.Ipc_TestConnectionProgress, {
             label: 'Testing connection',
-            current: 1,
-            max: 10
+            value: 1,
+            total: 10
         });
 
         const finalResponse: IIndustrialDirectMethodResponse = {
@@ -117,8 +117,8 @@ export class IndustrialConnectProvider extends AppProvider {
         try {
             this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
                 label: 'Testing connection',
-                current: 1,
-                max: 10
+                value: 1,
+                total: 10
             });
 
             const testConnectionResponse = await this.testConnection(event, apiContext, browseNodesRequest.opcEndpoint);
@@ -133,8 +133,8 @@ export class IndustrialConnectProvider extends AppProvider {
 
             this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
                 label: 'Sending BrowseNodes request',
-                current: 2,
-                max: 10
+                value: 2,
+                total: 10
             });
 
             const requestConfig = await this.getDirectMethodApiConfig(
@@ -170,8 +170,8 @@ export class IndustrialConnectProvider extends AppProvider {
 
                             this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
                                 label: 'Fetching nodes',
-                                current: 3,
-                                max: 10
+                                value: 3,
+                                total: 10
                             });
 
                             fetchBrowsedNodesResponse = await this.fetchBrowsedNodes(apiContext, jobId, continuationToken);
@@ -218,8 +218,8 @@ export class IndustrialConnectProvider extends AppProvider {
 
         this.authWindow.webContents.send(contextBridgeTypes.Ipc_FetchNodesProgress, {
             label: 'Fetching nodes',
-            current: 10,
-            max: 10
+            value: 10,
+            total: 10
         });
 
         return finalResponse;
